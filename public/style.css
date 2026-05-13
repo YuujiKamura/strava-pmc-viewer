@@ -300,6 +300,52 @@ body {
 .setup-footnote { background: #fafafa; border-radius: 6px; padding: 0.75rem 1rem; margin-top: 1.25rem; font-size: 0.78rem; color: var(--fg-soft); line-height: 1.7; }
 .setup-footnote strong { color: var(--fg); }
 .setup-footnote code { background: #ececec; padding: 0.05rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
+
+/* データフロー図 */
+.data-flow {
+  display: flex; align-items: stretch; justify-content: center; gap: 0.5rem;
+  background: var(--bg-elev); border: 1px solid var(--line); border-radius: 8px;
+  padding: 0.75rem 1rem; margin-bottom: 1rem; flex-wrap: wrap;
+}
+.flow-node {
+  flex: 1 1 180px; min-width: 140px;
+  display: flex; flex-direction: column; gap: 0.2rem;
+  padding: 0.55rem 0.85rem;
+  background: #fafafa; border: 1px solid var(--line); border-radius: 6px;
+  text-align: center;
+}
+.flow-node .flow-label { font-weight: 600; font-size: 0.92rem; color: var(--fg); }
+.flow-node .flow-sub   { font-size: 0.72rem; color: var(--muted); }
+.flow-node.node-strava  { border-color: #d8e6f5; }
+.flow-node.node-strava  .flow-label { color: #2e7cd6; }
+.flow-node.node-worker  { border-color: #ffe1cc; background: #fff7f0; }
+.flow-node.node-worker  .flow-label { color: var(--accent); }
+.flow-node.node-browser { border-color: #cfe5d4; background: #f0f7f1; }
+.flow-node.node-browser .flow-label { color: var(--pos); }
+.flow-node.node-browser strong { color: var(--pos); }
+.flow-arrow {
+  align-self: center; color: var(--muted-2); font-size: 1.3rem;
+  flex: 0 0 auto; padding: 0 0.2rem;
+}
+@media (max-width: 600px) {
+  .flow-arrow { transform: rotate(90deg); }
+  .data-flow { flex-direction: column; align-items: stretch; }
+}
+
+/* Data Status badge */
+.data-status-line { margin: 0.75rem 0 0; font-size: 0.78rem; color: var(--muted); line-height: 1.6; }
+.data-status-badge {
+  display: inline-block; background: #f0f7f1; color: var(--pos);
+  border: 1px solid #cfe5d4; border-radius: 999px;
+  padding: 0.12rem 0.55rem; font-size: 0.72rem; font-weight: 600;
+  letter-spacing: 0.03em; margin-right: 0.5rem;
+}
+.data-status-line code { background: #ececec; padding: 0.05rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
+
+/* Worker コード透明性リンク */
+.code-disclosure { margin: 0.45rem 0 0; font-size: 0.74rem; color: var(--muted); line-height: 1.55; }
+.code-disclosure a { color: var(--accent); }
+.code-disclosure code { background: #ececec; padding: 0.05rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
 .setup-row {
   display: flex; align-items: center; gap: 0.75rem;
   margin: 0.45rem 0; flex-wrap: wrap;

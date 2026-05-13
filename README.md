@@ -1,19 +1,23 @@
 # Strava PMC Viewer
 
 **自分のデータは、自分の手の中に。**
-運営サーバーを介さない、プライバシー特化型の年度別コンディション分析ツール。
+中央サーバーを持たない、年度別コンディション分析ツール。
+
+## データはどうなる?
+
+- **データはどこにある?** あなたのブラウザの `localStorage` だけです。ページを閉じても消えませんが、開発者を含む第三者がアクセスすることは物理的に不可能です。
+- **Worker は何をする?** ブラウザの CORS 制約を回避して Strava から token を取ってくるだけの中継器です。データ保存ロジックは入っていません。コードは [worker/index.js](./worker/index.js) (約 90 行) で公開しています。
+- **秘密鍵 (Client Secret) はどこ?** あなたが立てた Worker の中だけ。Cloudflare の secret として暗号化されています。
+
+データの流れ: `Strava ↔ Your Worker ↔ Your Browser`
 
 ## Setup in 3 Steps
 
 1. **Register**: Strava API で鍵を取得
-2. **Deploy**: Cloudflare Worker をデプロイ
+2. **Deploy**: Cloudflare Worker をデプロイ (約 10 分)
 3. **Connect**: 自分の URL を貼り付けて完了
 
 詳細は [SETUP.md](./SETUP.md)。
-
----
-
-※ 開発者を含む第三者が、あなたの走行データや秘密鍵に触れる経路は物理的に存在しません。
 
 ## これは何
 
