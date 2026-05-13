@@ -581,8 +581,13 @@ async function selectYear(year, { force = false } = {}) {
 
   try {
     const acts = await loadYear(year, { force });
-    // status は loadYear がキャッシュ vs API でメッセージ調整済 (force 時は上書き不要)
-    render(year, acts);
+    // 過去年の cache を warmup activities として merge: CTL (τ=42日) は 60 日 warmup
+    // では e^{-60/42}≈0.24 の初期値依存が残り、Strava 公式 (全履歴) と乖離する。
+    // 過去年を一度取得すれば cache が積まれて warmup が効くので、user が過去年を
+    // クリックしていくほど CTL が公式値に収束する。
+    const warmupActs = collectWarmupActivities(year);
+    const mergedForPmc = warmupActs.length ? dedupActivities([...warmupActs, ...acts]) : acts;
+    render(year, mergedForPmc, acts);
     renderYearButtons();
     // active state を再付与 (renderYearButtons で消えるので)
     for (const b of yearButtons.querySelectorAll("button")) {
@@ -634,8 +639,37 @@ async function loadYear(year, { force = false } = {}) {
   return acts;
 }
 
+/** 過去 3 年分の cache を warmup 用に集めて返す (cache 不在なら空配列)。 */
+function collectWarmupActivities(year) {
+  const athId = token?.athlete?.id;
+  const out = [];
+  for (let y = year - 1; y >= year - 3; y--) {
+    const c = cache.loadYearCache(athId, y);
+    if (c && Array.isArray(c.activities)) out.push(...c.activities);
+  }
+  return out;
+}
+
+/** activity.id でユニーク化 (warmup と loadYear の重複期間を吸収)。 */
+function dedupActivities(activities) {
+  const seen = new Set();
+  const out = [];
+  for (const a of activities) {
+    if (a && a.id != null) {
+      if (seen.has(a.id)) continue;
+      seen.add(a.id);
+    }
+    out.push(a);
+  }
+  return out;
+}
+
 // ── render ──────────────────────────────────────────────────────────────
-function render(year, activities) {
+// activities: PMC 計算用 (warmup 含む全期間)、yearActivities: 表示年だけの活動
+// (day-detail panel / lastActivityEndMs 用)。warmup なしの呼び出しでは
+// yearActivities を省略すると activities をそのまま使う。
+function render(year, activities, yearActivities) {
+  const yearActs = yearActivities || activities;
   const from = `${year}-01-01`;
   const to   = `${year}-12-31`;
   const points = computePmc(activities, { from, to });
@@ -650,15 +684,15 @@ function render(year, activities) {
   }
   currentPoints = points;
   currentTodayIdx = refIdx;
-  // 時間粒度の連続時間減衰の起点 = 最終 activity 終了時刻 (start_date + elapsed_time)。
+  // 時間粒度の連続時間減衰の起点 = 当年の最終 activity 終了時刻。
   // 当年表示の時だけ意味があるので、refIdx が末尾 (= 過去年表示) なら null にしておく。
   const isCurrentYearView = (points[refIdx]?.date <= todayStr) && (refIdx < points.length - 1 || todayStr.startsWith(String(year)));
-  currentLastEndMs = isCurrentYearView ? lastActivityEndMs(activities) : null;
+  currentLastEndMs = isCurrentYearView ? lastActivityEndMs(yearActs) : null;
   updateCards(points, refIdx);
 
-  // activities by date for click-panel
+  // activities by date for click-panel (当年だけ、warmup の過去年活動は除外)
   const byDate = new Map();
-  for (const a of activities) {
+  for (const a of yearActs) {
     if (!a.start_date) continue;
     const d = a.start_date.slice(0, 10);
     if (!byDate.has(d)) byDate.set(d, []);
