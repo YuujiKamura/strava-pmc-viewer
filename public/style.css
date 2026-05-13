@@ -259,17 +259,30 @@ body {
   margin: 0.65rem 0 0;
   background: var(--code-bg); color: var(--code-fg);
   border-radius: 6px;
-  overflow: visible;             /* 外枠は中身に応じて伸びる */
+  border-left: 4px solid var(--accent);    /* Strava orange accent */
+  overflow: visible;
 }
 .codeblock pre {
   margin: 0;
-  padding: 0.8rem 1rem;
+  padding: 0.8rem 1rem 0.8rem 1.1rem;
+  max-height: none;
   overflow-x: auto;
+  white-space: pre;
   font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   font-size: 0.78rem;
   line-height: 1.55;
   color: var(--code-fg);
 }
+.setup-why { margin: 0.5rem 0 1rem; font-size: 0.82rem; }
+.setup-why > summary { cursor: pointer; color: var(--muted); padding: 0.3rem 0; list-style: none; }
+.setup-why > summary::-webkit-details-marker { display: none; }
+.setup-why > summary::before { content: "▸ "; color: var(--muted-2); }
+.setup-why[open] > summary::before { content: "▾ "; }
+.setup-why p { color: var(--fg-soft); line-height: 1.7; padding: 0.5rem 0.75rem; background: #fafafa; border-left: 3px solid var(--muted-2); border-radius: 0 4px 4px 0; margin: 0.3rem 0 0; }
+.setup-why a { color: var(--accent); }
+.setup-why code { background: #ececec; padding: 0.05rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
+.btn-link { display: inline-block; padding: 0.25rem 0.6rem; margin-right: 0.5rem; background: var(--accent-soft); color: var(--accent); border-radius: 4px; text-decoration: none; font-weight: 500; font-size: 0.85rem; }
+.btn-link:hover { background: var(--accent); color: #fff; }
 .codeblock code { background: transparent; padding: 0; color: inherit; }
 .codeblock-copy {
   position: absolute; top: 0.4rem; right: 0.4rem;

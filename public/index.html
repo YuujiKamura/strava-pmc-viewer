@@ -21,59 +21,70 @@
        見せる過去の構成は完全撤去。設定完了後に初めて自分のグラフが出る。 -->
   <main class="shell" id="auth-shell" hidden>
     <section class="hero hero-minimal" data-state="unconfigured">
-      <h2 class="hero-title">あなたの走りを、<br>誰にも渡さない。</h2>
+      <h2 class="hero-title">Strava 年度別 Fitness &amp; Freshness</h2>
       <p class="hero-tag">
-        Strava の記録を、あなたのブラウザの中だけで年度別グラフにします。<br>
-        <strong>開発者を含め、他の誰かがあなたのデータを見ることは物理的に不可能です。</strong>
+        このアプリは、<strong>あなたのデータを外部に一切送信しません</strong>。
+        そのための初回設定 (Cloudflare Workers の Proxy デプロイ、約 10 分) が必要です。
       </p>
       <div class="hero-cta-wrap">
-        <button id="hero-start" class="btn btn-primary btn-lg" type="button">仕組みを見て、自分で始める</button>
+        <button id="hero-start" class="btn btn-primary btn-lg" type="button">設定を始める</button>
         <button id="hero-connect" class="btn btn-primary btn-lg" type="button" hidden>Strava と接続</button>
       </div>
-      <p class="hero-assure">設定は最初の一度だけ。あとは年度を選ぶだけです。</p>
+      <p class="hero-assure">設定は最初の一度だけ。あとは年度ボタンを押すだけです。</p>
     </section>
 
-    <!-- 抽象的なフロー図 (実データなし、概念だけ) -->
+    <!-- データ経路図 (実データなし、構成だけ) -->
     <div class="data-flow data-flow-preview" aria-label="データの流れ">
       <div class="flow-node node-strava">
-        <span class="flow-label">Strava の倉庫</span>
-        <span class="flow-sub">あなたの記録の保管庫</span>
+        <span class="flow-label">Strava API</span>
+        <span class="flow-sub">記録の取得元</span>
       </div>
       <div class="flow-arrow" aria-hidden="true">→</div>
       <div class="flow-node node-worker">
-        <span class="flow-label">あなた専用の通訳</span>
-        <span class="flow-sub">記録を借りる窓口役</span>
+        <span class="flow-label">Cloudflare Worker</span>
+        <span class="flow-sub">あなたが立てた Proxy</span>
       </div>
       <div class="flow-arrow" aria-hidden="true">→</div>
       <div class="flow-node node-browser">
-        <span class="flow-label">この画面</span>
-        <span class="flow-sub"><strong>あなたのブラウザの中だけ</strong></span>
+        <span class="flow-label">ブラウザ</span>
+        <span class="flow-sub"><strong>Local Only</strong> (この画面)</span>
       </div>
     </div>
   </main>
 
   <details id="setup-panel" class="setup-panel">
-    <summary><span class="summary-text">安心のための 3 つの準備</span></summary>
+    <summary><span class="summary-text">API 接続設定 (初回のみ)</span></summary>
     <div class="setup-body">
 
-      <!-- 短い納得文 + 3 ステップ -->
       <p class="setup-lead">
-        あなたの記録は <strong>Strava という大きな倉庫</strong> にあります。そこから記録を借りてくる
-        <strong>「あなた専用の通訳さん」</strong> を、3 つの準備で用意します。
-        通訳さんがいると、走った記録は <strong>あなたと通訳さんの間だけ</strong> で完結し、開発者の手元には
-        一切流れません。
+        開発者のサーバーにデータを送らない仕組み (ローカル完結型) にするため、
+        Strava との通信を中継する <strong>Cloudflare Worker (Proxy)</strong> を、あなた自身のアカウントに
+        デプロイしていただきます。
       </p>
+      <details class="setup-why">
+        <summary>なぜこれが必要か (technical)</summary>
+        <p>
+          Strava OAuth は <code>Client Secret</code> で <code>code → access_token</code> を交換する仕様。
+          Client Secret はブラウザ JS に置けない (公開 = 漏洩) ため、token 交換だけを行う薄い Worker を間に
+          挟む。Worker はあなたの Cloudflare 上に立つので、Secret も走行データも開発者のサーバーを通らない。
+          Worker のソースは
+          <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js"
+             target="_blank" rel="noopener">worker/index.js</a> (約 90 行) で公開。
+        </p>
+      </details>
       <ol class="roadmap" aria-label="セットアップの流れ">
         <li class="roadmap-step" data-step="1">
           <div class="roadmap-num">1</div>
           <div class="roadmap-body">
-            <div class="roadmap-role">鍵を借りる</div>
-            <div class="roadmap-title">Strava で「貸し出し窓口」に申し込む</div>
+            <div class="roadmap-role">STEP 1</div>
+            <div class="roadmap-title">Strava で鍵を取る</div>
             <div class="roadmap-desc">
-              <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener">strava.com/settings/api</a>
-              の「Create &amp; Manage Your App」を押すと、申込画面が出ます。
-              Authorization Callback Domain には <code id="setup-host-hint">—</code> を入れて、
-              発行された <strong>Client ID</strong> と <strong>Client Secret</strong> (鍵 2 本) を控えてください。
+              <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener" class="btn-link">
+                strava.com/settings/api を開く →
+              </a>
+              「Create &amp; Manage Your App」を押す。Authorization Callback Domain に
+              <code id="setup-host-hint">—</code> を入れて、発行された
+              <strong>Client ID</strong> と <strong>Client Secret</strong> を控える。
             </div>
           </div>
         </li>
@@ -81,11 +92,11 @@
         <li class="roadmap-step" data-step="2">
           <div class="roadmap-num">2</div>
           <div class="roadmap-body">
-            <div class="roadmap-role">通訳を雇う</div>
-            <div class="roadmap-title">あなた専用の通訳さん (Worker) を用意する</div>
+            <div class="roadmap-role">STEP 2</div>
+            <div class="roadmap-title">Cloudflare にデプロイ</div>
             <div class="roadmap-desc">
-              下のコマンドを 1 行ずつ実行すると、Cloudflare 上にあなただけの通訳さんが立ちます。
-              最後に表示される <code>xxxx.workers.dev</code> の URL を控えてください。
+              下のコマンドを全部コピーしてターミナルで実行。最後に表示される
+              <code>xxxx.workers.dev</code> の URL を控える。
             </div>
             <div class="codeblock" data-lang="bash">
               <button class="codeblock-copy btn-sm" type="button" data-copy-target="code-wrangler">全コピー</button>
@@ -109,12 +120,11 @@ wrangler deploy</code></pre>
         <li class="roadmap-step" data-step="3">
           <div class="roadmap-num">3</div>
           <div class="roadmap-body">
-            <div class="roadmap-role">画面に取り付ける</div>
-            <div class="roadmap-title">この画面に「鍵」と「通訳の住所」を教える</div>
+            <div class="roadmap-role">STEP 3</div>
+            <div class="roadmap-title">URL を貼る</div>
             <div class="roadmap-desc">
-              下のフォームに、<strong>1 で控えた Client ID</strong> と
-              <strong>2 で控えた Worker URL</strong> を入れて「保存」。あとはヘッダの
-              「Strava と接続」を押すだけで、あなたの走った記録が年度別グラフになって出てきます。
+              下のフォームに <strong>Client ID</strong> と <strong>Worker URL</strong> を入れて「保存」。
+              ヘッダの「Strava と接続」を押すと年度別グラフが表示されます。
             </div>
           </div>
         </li>
@@ -157,11 +167,10 @@ wrangler deploy</code></pre>
         </div>
       </div>
 
-      <!-- 補足 -->
       <aside id="worker-tooltip" class="setup-footnote">
         <p>
-          <strong>※ 開発者を含む第三者が、あなたの走った記録や鍵に触れる経路は物理的に存在しません。</strong><br>
-          記録はこの 3 者の間だけを通ります: <code>Strava の倉庫 ↔ あなたの通訳 ↔ この画面</code>。
+          記録経路: <code>Strava API ↔ あなたの Cloudflare Worker ↔ あなたのブラウザ</code>。
+          開発者のサーバーは経由しません。Secret は Worker の env でのみ保持されます。
         </p>
       </aside>
     </div>
