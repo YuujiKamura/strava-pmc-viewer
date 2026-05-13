@@ -102,12 +102,15 @@ function formatElapsed(hours) {
     return `${m} 分`;
   }
   if (hours < 24) {
-    const h = Math.floor(hours);
-    const m = Math.round((hours - h) * 60);
+    let h = Math.floor(hours);
+    let m = Math.round((hours - h) * 60);
+    if (m >= 60) { h += 1; m = 0; }
+    if (h >= 24) return `1 日`;
     return m > 0 ? `${h} 時間 ${m} 分` : `${h} 時間`;
   }
-  const d = Math.floor(hours / 24);
-  const h = Math.round(hours - d * 24);
+  let d = Math.floor(hours / 24);
+  let h = Math.round(hours - d * 24);
+  if (h >= 24) { d += 1; h = 0; }  // round 後の繰り上げ (h=24 を「日に+1」へ吸収)
   return h > 0 ? `${d} 日 ${h} 時間` : `${d} 日`;
 }
 
@@ -208,6 +211,7 @@ let chart = null;
 let activitiesCache = new Map();  // year → Array<Activity>
 let currentYear = null;
 let currentPoints = null;         // 「現在時刻に戻る」用の最新 points 参照
+let currentByDate = null;         // 同じく、day-detail panel 再描画用の byDate Map
 let currentTodayIdx = 0;          // 現在年での「今日」相当の idx
 let currentLastEndMs = null;      // 現在年の最終 activity 終了時刻 (ms epoch)、時間粒度の減衰起点
 
@@ -527,12 +531,14 @@ if (refreshBtn) {
 if (todayBtn) {
   todayBtn.addEventListener("click", () => {
     if (!currentPoints) return;
-    // 当年でないなら当年に戻す、当年なら現在 idx で card 更新 (chart 選択もリセット)
+    // 当年でないなら当年に戻す、当年なら現在 idx で card + day-detail を再同期
+    // (chart 選択もリセット、zoom も全期間に戻す)
     const thisYear = new Date().getFullYear();
     if (currentYear !== thisYear) {
       selectYear(thisYear);
     } else {
       updateCards(currentPoints, currentTodayIdx);
+      if (currentByDate) renderDay(currentTodayIdx, currentPoints, currentByDate);
       if (chart) chart.resetZoom?.();
     }
   });
@@ -653,6 +659,7 @@ function render(year, activities) {
     });
   }
 
+  currentByDate = byDate;
   drawChart(points, byDate);
   // 初期選択日も「現在時刻」(refIdx) ── 12/31 を中心に出す bug 修正
   renderDay(refIdx, points, byDate);
