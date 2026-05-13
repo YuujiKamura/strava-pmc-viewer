@@ -504,3 +504,60 @@ body {
   text-align: center; color: var(--muted-2);
   padding: 1rem; font-size: 0.72rem;
 }
+
+/* ── Setup lead 内の「初回設定 約10分」chip ──────── */
+.setup-lead-time {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* ── setup checkbox の「推奨」pill ───────────────── */
+.setup-row-pill {
+  display: inline-block;
+  margin-left: 0.35rem;
+  font-size: 0.7rem;
+  color: var(--pos);
+  background: #eef7f0;
+  border: 1px solid #cfe5d4;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  vertical-align: middle;
+  letter-spacing: 0.02em;
+}
+
+/* ── Data Status: Local Only バッジ ──────────────── */
+.setup-data-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 0.75rem 0 0;
+  padding: 0.6rem 0.85rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--pos);
+  border-radius: 4px;
+}
+.setup-data-status-badge {
+  flex: 0 0 auto;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--pos);
+  background: #eef7f0;
+  border: 1px solid #cfe5d4;
+  padding: 0.15rem 0.55rem;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.setup-data-status-note {
+  font-size: 0.78rem;
+  color: var(--fg-soft);
+  line-height: 1.5;
+}

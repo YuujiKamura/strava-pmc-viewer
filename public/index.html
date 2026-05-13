@@ -58,9 +58,10 @@
     <div class="setup-body">
 
       <p class="setup-lead">
-        開発者のサーバーにデータを送らない仕組み (ローカル完結型) にするため、
-        Strava との通信を中継する <strong>Cloudflare Worker</strong> を、あなた自身のアカウントに
-        デプロイしていただきます。
+        本ツールは「あなた専用の中継 (<strong>Cloudflare Worker</strong>)」を経由して
+        Strava と通信します。Strava の Client Secret も走行データも、開発者 (yuuji) の
+        サーバーは通らず、すべてあなたの管理下 (ブラウザ + あなたの Cloudflare アカウント)
+        で完結します。<span class="setup-lead-time">初回設定 約 10 分</span>。
       </p>
       <details class="setup-why">
         <summary>なぜこれが必要か (technical)</summary>
@@ -77,8 +78,8 @@
         <li class="roadmap-step" data-step="1">
           <div class="roadmap-num">1</div>
           <div class="roadmap-body">
-            <div class="roadmap-role">STEP 1</div>
-            <div class="roadmap-title">Strava で鍵を取る</div>
+            <div class="roadmap-role">STEP 1 · 鍵を取る</div>
+            <div class="roadmap-title">Strava API App を作成</div>
             <div class="roadmap-desc">
               <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener" class="btn-link">
                 strava.com/settings/api を開く →
@@ -93,8 +94,8 @@
         <li class="roadmap-step" data-step="2">
           <div class="roadmap-num">2</div>
           <div class="roadmap-body">
-            <div class="roadmap-role">STEP 2</div>
-            <div class="roadmap-title">Cloudflare にデプロイ</div>
+            <div class="roadmap-role">STEP 2 · 中継地点を建てる</div>
+            <div class="roadmap-title">Cloudflare Worker をデプロイ</div>
             <div class="roadmap-desc">
               下のコマンドを全部コピーしてターミナルで実行 (最終行の
               <code>YOUR-USERNAME</code> は自分の GitHub アカウントに置換)。
@@ -122,8 +123,8 @@ wrangler deploy --var ALLOWED_ORIGIN:"https://YOUR-USERNAME.github.io"</code></p
         <li class="roadmap-step" data-step="3">
           <div class="roadmap-num">3</div>
           <div class="roadmap-body">
-            <div class="roadmap-role">STEP 3</div>
-            <div class="roadmap-title">URL を貼る</div>
+            <div class="roadmap-role">STEP 3 · 連携を仕上げる</div>
+            <div class="roadmap-title">SPA に貼り付けて接続</div>
             <div class="roadmap-desc">
               下のフォームに <strong>Client ID</strong> と <strong>Worker URL</strong> を入れて「保存」。
               ヘッダの「Strava と接続」を押すと年度別グラフが表示されます。
@@ -146,9 +147,13 @@ wrangler deploy --var ALLOWED_ORIGIN:"https://YOUR-USERNAME.github.io"</code></p
         <div class="setup-row setup-row-checkbox">
           <label for="setup-scope-readall">
             <input id="setup-scope-readall" type="checkbox" checked>
-            非公開アクティビティも含める (既定 ON)
+            非公開アクティビティも含める <span class="setup-row-pill">推奨・既定 ON</span>
           </label>
-          <span class="setup-row-hint">自分のデータを自分で分析するツールなので、private rides も含めて全件取るのが既定。チェックを外すと公開分のみに絞れます。</span>
+          <span class="setup-row-hint">自分のトレーニング分析を正確にするため、private rides も含めて全件取るのが既定。チェックを外すと公開分のみに絞れます。</span>
+        </div>
+        <div class="setup-data-status" aria-label="データ保存に関する注釈">
+          <span class="setup-data-status-badge">Data Status: Local Only</span>
+          <span class="setup-data-status-note">取得したアクティビティはお使いのブラウザの localStorage にのみ保存されます。ブラウザのキャッシュをクリアすると削除されます。</span>
         </div>
         <div class="setup-actions">
           <button id="setup-save" class="btn btn-primary" type="button">保存</button>
