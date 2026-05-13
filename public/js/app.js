@@ -570,8 +570,13 @@ async function selectYear(year, { force = false } = {}) {
     b.classList.toggle("active", Number(b.dataset.year) === year);
     b.disabled = true;
   }
+  // 過去年データは一度取ったら不変 (Strava 側で activity が遡って増えることはない)。
+  // 「最新に更新」は現在年だけ意味があるので過去年では隠す。「詳細値を取得」は
+  // 過去年でも HR / Power などの enrich が後付け可能なので有効のまま。
+  const thisYear = new Date().getFullYear();
+  const isCurrentYear = (year === thisYear);
+  refreshBtn.hidden = !isCurrentYear;
   enrichBtn.hidden = false;
-  refreshBtn.hidden = false;
   fetchStatus.textContent = force ? "強制取得中…" : "確認中…";
 
   try {
@@ -595,13 +600,19 @@ async function loadYear(year, { force = false } = {}) {
   // メモリキャッシュ
   if (!force && activitiesCache.has(year)) return activitiesCache.get(year);
 
-  // localStorage キャッシュ
+  // localStorage キャッシュ。過去年は「完了済みデータ」として永続扱い、
+  // 現在年は「キャッシュ ${取得時刻}」として最終確認時刻を出す。
   const athId = token?.athlete?.id;
+  const thisYear = new Date().getFullYear();
+  const isCurrentYear = (year === thisYear);
   if (!force) {
     const cached = cache.loadYearCache(athId, year);
     if (cached) {
       activitiesCache.set(year, cached.activities);
-      fetchStatus.textContent = `${cached.activities.length} 件 (${year}年, キャッシュ ${cache.fetchedAtLabel(cached.fetchedAt)})`;
+      const label = isCurrentYear
+        ? `${cached.activities.length} 件 (${year}年, キャッシュ ${cache.fetchedAtLabel(cached.fetchedAt)})`
+        : `${cached.activities.length} 件 (${year}年, 完了済みデータ)`;
+      fetchStatus.textContent = label;
       return cached.activities;
     }
   }
