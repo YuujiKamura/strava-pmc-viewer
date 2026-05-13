@@ -22,26 +22,20 @@
   <main class="shell" id="auth-shell" hidden>
     <section class="hero hero-minimal" data-state="unconfigured">
       <h2 class="hero-title">Strava Annual Fitness &amp; Freshness</h2>
-      <p class="hero-tag">年度別のコンディション推移を可視化するセルフホスト型ツール。<strong>コードは AI 生成</strong>。</p>
+      <p class="hero-tag">年度別の推移を可視化するセルフホスト型ツール。</p>
 
       <section class="hero-source" aria-labelledby="hero-source-title">
-        <h3 id="hero-source-title" class="hero-source-title">Source &amp; Verification</h3>
+        <h3 id="hero-source-title" class="hero-source-title">Verification</h3>
         <p class="hero-source-lead">
-          本ツールは MIT License で公開。導入前に Proxy Worker のコードを AI
-          (ChatGPT / Claude 等) に読ませて、以下を確認してください。
+          AI 生成コード、MIT License。導入前に
+          <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js" target="_blank" rel="noopener">Proxy Worker</a>
+          を AI に査読させ、認証鍵が Strava 以外に送信されていないかを確認することを推奨。
+          鍵をクラウドに置くリスクを許容できる場合のみ、以下の手順に進んでください。
         </p>
-        <ul class="hero-source-bullets">
-          <li>認証鍵 (Secret) が Strava 以外のドメインに送信されていないか</li>
-          <li>不要なログ出力が含まれていないか</li>
-        </ul>
         <p class="hero-source-linkline">
           <a href="https://github.com/YuujiKamura/strava-pmc-viewer" target="_blank" rel="noopener">Logic Repository</a>
           ／
           <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js" target="_blank" rel="noopener">Proxy Worker (約 100 行)</a>
-        </p>
-        <p class="hero-source-fallback">
-          無料 SaaS に鍵を置くこと自体が不気味なら、利用を控えるか、fork して
-          ローカルプロキシ方式に改造してください。
         </p>
       </section>
 
@@ -79,26 +73,6 @@
         走行データと認証情報は、あなたのブラウザとあなた自身の Cloudflare Worker の間
         だけでやり取りされます。開発者側のサーバを通る経路はありません。
       </p>
-      <details class="setup-why">
-        <summary>よくある質問</summary>
-        <dl class="setup-faq">
-          <dt>なぜ自分の Worker が必要?</dt>
-          <dd>Strava からデータを取るには Client Secret が必要ですが、これをブラウザに
-            置くと公開 = 漏洩になります。自分の Cloudflare 上に薄い中継を 1 つ立てて、
-            Secret を visitor 側に閉じ込める設計です。
-          </dd>
-          <dt>Cloudflare が死んだら?</dt>
-          <dd>ツールは動かなくなりますが、データはどこにも漏れません。中継 Worker も
-            Secret も visitor の管理下にあり、開発者や第三者のサーバには一切置かれていない
-            ためです。
-          </dd>
-          <dt>コードを確認したい</dt>
-          <dd>中継 Worker の中身は <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js"
-            target="_blank" rel="noopener">GitHub で公開</a>。やっているのは Strava の
-            <code>/oauth/token</code> 中継だけで、データ保存ロジックは入っていません。
-          </dd>
-        </dl>
-      </details>
       <ol class="roadmap" aria-label="セットアップの流れ">
         <li class="roadmap-step" data-step="1">
           <div class="roadmap-num">1</div>
