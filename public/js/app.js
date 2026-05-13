@@ -83,10 +83,9 @@ const escapeHtml = s => String(s).replace(/[&<>"']/g, ch =>
   refreshWizardSteps();
 
   if (!config.isConfigured()) {
-    // config 未設定: setup を強制展開、接続ボタン無効化
-    openSetupPanel();
-    setupStatus.textContent = "先に Setup を完了してください (clientId と Worker URL の両方が必要)";
-    setupStatus.className = "setup-status err";
+    // config 未設定: hero CTA「さっそく始める」を押すと setup を開く UX。
+    // ここで setup を auto-open すると、CTA を押しても変化が見えず「何も起きない」
+    // と user に映る (実際に user 報告あり)。
     onDisconnectedUnconfigured();
     return;
   }
@@ -284,15 +283,15 @@ function wireHero() {
   if (heroStartBtn) {
     heroStartBtn.addEventListener("click", () => {
       openSetupPanel();
-      // scroll into view so user can immediately see the wizard
-      setTimeout(() => setupPanel?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+      // 開いたら focus を入れて視覚的にも「何か起きた」を伝える
+      requestAnimationFrame(() => {
+        setupPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+        setTimeout(() => setupClientInput?.focus(), 300);
+      });
     });
   }
   if (heroConnectBtn) {
-    heroConnectBtn.addEventListener("click", () => {
-      // 既存の connectBtn と同じ動作
-      connectBtn.click();
-    });
+    heroConnectBtn.addEventListener("click", () => connectBtn.click());
   }
 }
 
