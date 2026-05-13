@@ -241,12 +241,15 @@ body {
 .setup-row-checkbox label { flex: 1 1 auto; display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--fg); }
 .setup-row-checkbox input { margin: 0; }
 .setup-row-hint { color: var(--muted-2); font-size: 0.72rem; }
-.setup-trust { margin: 0.6rem 0 0.4rem; font-size: 0.78rem; }
-.setup-trust > summary { cursor: pointer; color: var(--muted); padding: 0.3rem 0; list-style: none; }
-.setup-trust > summary::-webkit-details-marker { display: none; }
-.setup-trust > summary::before { content: "ⓘ "; color: var(--muted-2); }
-.setup-trust-body { color: var(--fg-soft); line-height: 1.7; padding: 0.5rem 0.75rem; background: #fafafa; border-left: 3px solid var(--muted-2); border-radius: 0 4px 4px 0; }
-.setup-trust-body code { background: #ececec; padding: 0.05rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
+/* なぜ Worker か (fold せず最初に見える位置) */
+.why-worker { background: #fafafa; border-left: 4px solid var(--accent); border-radius: 0 6px 6px 0; padding: 1rem 1.25rem; margin: 0 0 1.5rem; }
+.why-worker-title { margin: 0 0 0.6rem; font-size: 1rem; font-weight: 600; color: var(--fg); }
+.why-worker p { margin: 0.4rem 0; line-height: 1.7; color: var(--fg-soft); font-size: 0.88rem; }
+.why-worker strong { color: var(--fg); }
+.why-worker em { font-style: normal; color: var(--accent); font-weight: 500; }
+.why-worker-tag { margin-top: 0.75rem !important; color: var(--muted) !important; font-size: 0.82rem !important; font-style: italic; }
+.roadmap-role { display: inline-block; font-size: 0.65rem; color: var(--accent); background: var(--accent-soft); padding: 0.1rem 0.5rem; border-radius: 999px; letter-spacing: 0.04em; margin-bottom: 0.25rem; font-weight: 600; text-transform: uppercase; }
+.roadmap-assure { margin-top: 0.5rem; font-size: 0.78rem; color: var(--pos); padding-top: 0.4rem; border-top: 1px dashed #cfe5d4; }
 .setup-row {
   display: flex; align-items: center; gap: 0.75rem;
   margin: 0.45rem 0; flex-wrap: wrap;

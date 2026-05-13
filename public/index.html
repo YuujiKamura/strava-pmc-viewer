@@ -21,25 +21,49 @@
     <summary><span class="summary-text">設定を表示</span></summary>
     <div class="setup-body">
 
-      <!-- 3 ステップ ロードマップ -->
+      <!-- なぜ Worker か (fold せず、最初に見える位置で説明) -->
+      <section class="why-worker">
+        <h3 class="why-worker-title">なぜ「自分専用の中継器」を立ててもらうのか</h3>
+        <p>
+          Strava と通信するには <strong>Client Secret</strong>(秘密鍵)が必要です。
+          一般的なツールはこの鍵を <em>運営のサーバー</em> に置きます ── 言い換えると、
+          運営があなたの活動データを見ようと思えば見られる状態です。
+        </p>
+        <p>
+          このツールには運営サーバーがありません。あなた自身の Cloudflare アカウントに
+          小さな中継器 (Worker) を 10 分で設置していただき、そこにあなたの鍵を置きます。
+          データは
+          <strong>Strava ↔ あなたの Worker ↔ あなたのブラウザ</strong>
+          の間だけで完結し、<strong>このツールの開発者を含む第三者は一切介入できません</strong>。
+        </p>
+        <p class="why-worker-tag">
+          ── 「年度比較したいけど、データを誰かに渡したくない」を両立させるための構成です。
+        </p>
+      </section>
+
+      <!-- 3 ステップ ロードマップ: 役割と「得られる安心」を併記 -->
       <ol class="roadmap" aria-label="セットアップの流れ">
         <li class="roadmap-step" data-step="1">
           <div class="roadmap-num">1</div>
           <div class="roadmap-body">
-            <div class="roadmap-title">Strava API 設定</div>
+            <div class="roadmap-role">鍵の作成</div>
+            <div class="roadmap-title">Strava で API アプリを登録</div>
             <div class="roadmap-time">約 5 分</div>
             <div class="roadmap-desc">
               <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener">strava.com/settings/api</a>
-              で API アプリを作成。Authorization Callback Domain には
-              <code id="setup-host-hint">—</code> を入れて、Client ID と Client Secret を控える。
+              で「Create &amp; Manage Your App」。Authorization Callback Domain に
+              <code id="setup-host-hint">—</code> を入れて、<strong>Client ID</strong> と
+              <strong>Client Secret</strong> を控える。
             </div>
+            <div class="roadmap-assure">→ Strava 公式の OAuth ルートでだけアクセスする、あなた名義のアプリができる。</div>
           </div>
         </li>
         <li class="roadmap-arrow" aria-hidden="true">→</li>
         <li class="roadmap-step" data-step="2">
           <div class="roadmap-num">2</div>
           <div class="roadmap-body">
-            <div class="roadmap-title">Cloudflare Worker 設置</div>
+            <div class="roadmap-role">門番の設置</div>
+            <div class="roadmap-title">Cloudflare Worker をデプロイ</div>
             <div class="roadmap-time">約 10 分</div>
             <div class="roadmap-desc">
               ターミナルで下記を実行 → 表示された
@@ -55,17 +79,21 @@ wrangler secret put STRAVA_CLIENT_ID
 wrangler secret put STRAVA_CLIENT_SECRET
 wrangler deploy</code></pre>
             </div>
+            <div class="roadmap-assure">→ Client Secret はこの Worker の中だけに留まる。開発者にもクラウド事業者の DB にも転送されない。</div>
           </div>
         </li>
         <li class="roadmap-arrow" aria-hidden="true">→</li>
         <li class="roadmap-step" data-step="3">
           <div class="roadmap-num">3</div>
           <div class="roadmap-body">
-            <div class="roadmap-title">ID と URL を保存</div>
+            <div class="roadmap-role">接続</div>
+            <div class="roadmap-title">ID と URL を保存して開始</div>
             <div class="roadmap-time">約 1 分</div>
             <div class="roadmap-desc">
-              下のフォームに 2 つの値を入れて保存 → ヘッダの「Strava と接続」が押せるようになる。
+              下のフォームに ① Client ID と ② Worker URL を入れて「保存」。
+              その後ヘッダの「Strava と接続」を押すと、年度ボタンが表示される。
             </div>
+            <div class="roadmap-assure">→ 準備完了。あとは年度ボタンを押して比較するだけ。</div>
           </div>
         </li>
       </ol>
@@ -88,20 +116,6 @@ wrangler deploy</code></pre>
           </label>
           <span class="setup-row-hint">既定は公開のみ (<code>activity:read</code>)。最小権限の原則。</span>
         </div>
-        <details class="setup-trust">
-          <summary>なぜ Worker を立てるのか (信頼チェーン)</summary>
-          <div class="setup-trust-body">
-            Strava OAuth は <strong>Client Secret</strong> で <code>code → access_token</code>
-            を交換する。Client Secret は <strong>絶対にブラウザ JS に置けない</strong>
-            (フォーク・改造・スクレイピングで誰でも見える = 漏洩確定)。
-            よって「あなただけが触れる小さな中継器 (Worker)」を立てて、そこに
-            Secret を置く。ブラウザは Worker 経由でしか token を取れない。<br>
-            Cloudflare 側で行うこと: secret 保持 + CORS で <strong>あなたの origin だけ</strong>
-            を許可 (`ALLOWED_ORIGIN`)。ブラウザ側で行うこと: token を
-            <code>localStorage</code> に保管 + 全 API 呼び出しでこの token を Bearer で渡す。
-            この repo の Worker は wildcard CORS (<code>*</code>) を使わない実装になってる。
-          </div>
-        </details>
         <div class="setup-actions">
           <button id="setup-save" class="btn btn-primary" type="button">保存</button>
           <button id="setup-clear" class="btn btn-ghost" type="button">クリア</button>
@@ -124,19 +138,20 @@ wrangler deploy</code></pre>
   <!-- 未認証 landing: welcome ヒーロー -->
   <main class="shell" id="auth-shell" hidden>
     <section class="hero" data-state="unconfigured">
-      <p class="hero-need">こんな人向け</p>
-      <h2 class="hero-title">Strava の Fitness &amp; Freshness を、<br>年度ごとに切り替えて見たい</h2>
+      <p class="hero-need">Strava の Fitness &amp; Freshness を年度別に</p>
+      <h2 class="hero-title">あなたのデータを、<br>あなただけのプライベート空間で。</h2>
       <p class="hero-sub">
-        Strava 公式 UI は単一の時間軸スライダーで全期間を流し見るだけ。
-        このツールは <strong>「2025 年だけ」「2018 年だけ」</strong>とワンクリックで年度を切替、
-        過去年との比較や、特定の年の Fitness (CTL) / Fatigue (ATL) / Form (TSB) を
-        じっくり眺めるための SPA です。
+        Strava 公式 UI の Fitness &amp; Freshness を、<strong>「2025 年だけ」「2018 年だけ」</strong>
+        とワンクリックで年度を切替えて眺める SPA です。
+        ただし<strong>あなたのデータを一切外部サーバーに送信しません</strong>。
+        そのため、あなた専用の中継機 (Cloudflare Worker) を 10 分で構築していただきます。
+        これは、あなたの Client Secret (鍵) を世界であなただけが管理するための、最も安全な方法です。
       </p>
       <div class="hero-cta-wrap">
         <button id="hero-start" class="btn btn-primary btn-lg" type="button">さっそく始める →</button>
         <button id="hero-connect" class="btn btn-primary btn-lg" type="button" hidden>Strava と接続</button>
       </div>
-      <p class="hero-assure">※ データはあなたのブラウザにのみ保存されます。サーバには送られません。</p>
+      <p class="hero-assure">※ 取得したアクティビティはあなたのブラウザ内 (localStorage) のみに保存。サーバー送信なし。</p>
     </section>
   </main>
 
