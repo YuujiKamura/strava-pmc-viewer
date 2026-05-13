@@ -24,7 +24,7 @@
       <h2 class="hero-title">Strava 年度別 Fitness &amp; Freshness</h2>
       <p class="hero-tag">
         このアプリは、<strong>あなたのデータを外部に一切送信しません</strong>。
-        そのための初回設定 (Cloudflare Workers の Proxy デプロイ、約 10 分) が必要です。
+        そのための初回設定 (Cloudflare Worker のデプロイ、約 10 分) が必要です。
       </p>
       <div class="hero-cta-wrap">
         <button id="hero-start" class="btn btn-primary btn-lg" type="button">設定を始める</button>
@@ -42,7 +42,7 @@
       <div class="flow-arrow" aria-hidden="true">→</div>
       <div class="flow-node node-worker">
         <span class="flow-label">Cloudflare Worker</span>
-        <span class="flow-sub">あなたが立てた Proxy</span>
+        <span class="flow-sub">あなたが立てた中継</span>
       </div>
       <div class="flow-arrow" aria-hidden="true">→</div>
       <div class="flow-node node-browser">
@@ -58,7 +58,7 @@
 
       <p class="setup-lead">
         開発者のサーバーにデータを送らない仕組み (ローカル完結型) にするため、
-        Strava との通信を中継する <strong>Cloudflare Worker (Proxy)</strong> を、あなた自身のアカウントに
+        Strava との通信を中継する <strong>Cloudflare Worker</strong> を、あなた自身のアカウントに
         デプロイしていただきます。
       </p>
       <details class="setup-why">
@@ -182,17 +182,17 @@ wrangler deploy</code></pre>
     <p class="cards-forecast" id="cards-forecast"></p>
     <div class="cards">
       <div class="card">
-        <div class="label-human">持久力ベース</div>
+        <div class="label-human">体力</div>
         <div class="value" id="m-ctl">—</div>
         <div class="label-tech">CTL · 過去 42 日でどれだけ積み上げたか</div>
       </div>
       <div class="card">
-        <div class="label-human">今の追い込み度</div>
+        <div class="label-human">直近の疲れ</div>
         <div class="value" id="m-atl">—</div>
         <div class="label-tech">ATL · 過去 7 日の負荷量</div>
       </div>
       <div class="card" id="card-tsb">
-        <div class="label-human">明日の脚の状態</div>
+        <div class="label-human">身体の余裕</div>
         <div class="value" id="m-tsb">—</div>
         <div class="label-tech">TSB · 前日 CTL − 前日 ATL</div>
       </div>

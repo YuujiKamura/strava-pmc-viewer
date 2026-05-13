@@ -147,7 +147,7 @@ SETUP.md          # visitor 向けセットアップ手順
 ### localStorage を選んだ理由
 
 HttpOnly Cookie は backend が必要。本リポは静的 SPA + Cloudflare Worker
-(CORS proxy) の構成で、Cookie を発行する backend を持たない (持つと「Worker
+(OAuth 中継) の構成で、Cookie を発行する backend を持たない (持つと「Worker
 が user データを観測できる」状態になり ToS 上の最小化原則に反する)。
 よって brower-side で完結する localStorage を選び、その既知の弱点 (XSS で
 盗まれる) を SRI + CORS + secret 隔離で多段に潰す方針。
@@ -170,5 +170,34 @@ HttpOnly Cookie は backend が必要。本リポは静的 SPA + Cloudflare Work
 ## tests
 
 ```bash
-node --test tests/
+node --test tests/pmc.test.js tests/security.test.js tests/network.test.js
 ```
+
+`pmc.test.js` (PMC math) + `security.test.js` (CORS / OAuth scope / XSS / cache 分離) +
+`network.test.js` (Strava 429 backoff) の 3 ファイル構成。
+
+## commit 規約
+
+Conventional Commits ベースに以下の project-local 拡張を許容:
+
+- `feat:` / `fix:` / `docs:` / `style:` / `refactor:` / `test:` / `chore:` — 標準
+- `ux:` — UI / UX 体験 (ユーザー視点) の変更。技術構造の `feat` / `fix` と区別する
+- `sec:` — security boundary (CORS / OAuth / XSS / token 取扱) の変更。
+  audit / fix の両方を含む
+
+scope (`fix(css):` 等) はオプション。1 commit 1 関心事を原則とする。
+
+## まとめ
+
+このツールは「**自分のインフラの中だけで動く Fitness/Freshness グラフ**」を提供し
+ます。共有サーバを持たないため、運営者がデータを観測できる経路が物理的に存在し
+ません。
+
+- **今すぐ動かしたい人** → [SETUP.md](./SETUP.md) (約 20 分、Strava App + Cloudflare Worker のデプロイ)
+- **仕組みを先に見たい人** → [worker/index.js](./worker/index.js) (約 100 行の OAuth 中継) と
+  [public/js/pmc.js](./public/js/pmc.js) (PMC 計算ロジック) を読めば全体像が掴めます
+- **構成を fork したい人** → MIT (今後追加) に従って自由に改変可。Strava ToS と
+  Cloudflare 利用規約は本人が確認すること
+
+Strava の標準 UI に飽きた、年度比較したい、自分のデータを誰の手にも渡したくない、
+そんな人向けのツールです。

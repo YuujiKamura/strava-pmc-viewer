@@ -96,7 +96,7 @@ function renderForecast(forecast) {
   parts.push(`明日 (${day1.date}) TSB <strong>${day1.tsb.toFixed(0)}</strong>`);
   if (day3 !== day1) parts.push(`3日後 (${day3.date}) <strong>${day3.tsb.toFixed(0)}</strong>`);
   if (day7 !== day3 && day7 !== day1) parts.push(`1週間後 (${day7.date}) <strong>${day7.tsb.toFixed(0)}</strong>`);
-  if (fresh) parts.push(`フレッシュ復帰 <strong>${fresh.date}</strong> (あと ${forecast.indexOf(fresh) + 1}日)`);
+  if (fresh) parts.push(`余裕に戻る日 <strong>${fresh.date}</strong> (あと ${forecast.indexOf(fresh) + 1}日)`);
   cardsForecast.innerHTML = `休めば → ${parts.join(" · ")}`;
 }
 
@@ -116,33 +116,33 @@ function setConditionAdvice(ctl, atl, tsb, ramp, forecast) {
 
   // TSB のしきい値判定 (Coggan 系の慣用) を「次のアクション」言葉に翻訳
   if (tsb <= -20) {
-    msg = `かなり疲労が溜まっています ── レース直前ならテーパー (調整) のタイミング。平時なら 2〜3 日完全休養を入れると伸びます。 (TSB ${tsb.toFixed(0)})`;
+    msg = `直近の疲れが大きく、身体の余裕が無い状態 ── レース直前ならテーパー (調整) のタイミング。平時なら 2〜3 日完全休養を入れると伸びます。 (TSB ${tsb.toFixed(0)})`;
     cls = "neg";
   } else if (tsb <= -10) {
-    msg = `疲労が溜まり気味 ── 強度を落とすか、軽い日を 1 日挟むと回復が進みます。 (TSB ${tsb.toFixed(0)})`;
+    msg = `直近の疲れが溜まり気味 ── 強度を落とすか、軽い日を 1 日挟むと回復が進みます。 (TSB ${tsb.toFixed(0)})`;
     cls = "neg";
   } else if (tsb >= 20) {
-    msg = `フレッシュ (休みすぎ気味) ── レース直前ならピーキング完了状態。平時なら少し負荷を入れていい時期です。 (TSB +${tsb.toFixed(0)})`;
+    msg = `身体の余裕が大きい (休みすぎ気味) ── レース直前ならピーキング完了状態。平時なら少し負荷を入れていい時期です。 (TSB +${tsb.toFixed(0)})`;
     cls = "pos";
   } else if (tsb >= 5) {
-    msg = `今日はいくらでも追い込めます ── 疲労抜けが十分、レースや高強度の好機。 (TSB +${tsb.toFixed(0)})`;
+    msg = `今日はいくらでも追い込めます ── 直近の疲れが抜けて身体に余裕あり、レースや高強度の好機。 (TSB +${tsb.toFixed(0)})`;
     cls = "pos";
   } else {
-    msg = `フラット (平常運転) ── 疲労も溜まっていないし、特別積み上げてもいない状態。続けてトレーニングを積めます。 (TSB ${tsb.toFixed(0)})`;
+    msg = `平常運転 ── 直近の疲れも溜まっていないし、特別積み上げてもいない状態。続けてトレーニングを積めます。 (TSB ${tsb.toFixed(0)})`;
     cls = "neutral";
   }
 
   if (ramp != null) {
-    if (ramp >= 7)       msg += ` 持久力ベースが急増中 (+${ramp.toFixed(1)}/週) ── 怪我リスク域、強度の伸ばし方注意。`;
-    else if (ramp >= 3)  msg += ` 持久力ベースが順調に伸びています (+${ramp.toFixed(1)}/週)。`;
-    else if (ramp <= -3) msg += ` 持久力ベースが下降中 (${ramp.toFixed(1)}/週) ── 休みすぎなら戻しを。`;
+    if (ramp >= 7)       msg += ` 体力が急増中 (+${ramp.toFixed(1)}/週) ── 怪我リスク域、強度の伸ばし方注意。`;
+    else if (ramp >= 3)  msg += ` 体力が順調に伸びています (+${ramp.toFixed(1)}/週)。`;
+    else if (ramp <= -3) msg += ` 体力が下降中 (${ramp.toFixed(1)}/週) ── 休みすぎなら戻しを。`;
   }
   // forecast がある (TSB<0 + 後続 rest 日あり) と「フレッシュまで N 日」を補足
   if (forecast && forecast.length && tsb < 0) {
     const fresh = forecast.find(p => p.tsb >= 0);
     if (fresh) {
       const days = forecast.indexOf(fresh) + 1;
-      msg += ` (このまま休むと ${fresh.date} 頃にフレッシュ復帰、約 ${days}日。)`;
+      msg += ` (このまま休むと ${fresh.date} 頃に身体の余裕が戻ります、約 ${days}日。)`;
     }
   }
   conditionAdvice.textContent = msg;
@@ -611,11 +611,11 @@ function drawChart(points, byDate) {
         { type:"line", label:"TSS", data: points.map(p => p.tss > 0 ? p.tss : null),
           borderColor:"transparent", backgroundColor:"rgba(110,110,110,0.55)",
           pointRadius:2.5, pointHoverRadius:4, showLine:false, yAxisID:"yTss", order:4, spanGaps:false },
-        { type:"line", label:"Fitness (CTL)", data: points.map(p => p.ctl),
+        { type:"line", label:"体力 (CTL)", data: points.map(p => p.ctl),
           borderColor:"#2e7cd6", borderWidth:2.5, pointRadius:0, tension:0.25, yAxisID:"y", order:1 },
-        { type:"line", label:"Fatigue (ATL)", data: points.map(p => p.atl),
+        { type:"line", label:"直近の疲れ (ATL)", data: points.map(p => p.atl),
           borderColor:"#e26ca7", borderWidth:2, pointRadius:0, tension:0.25, yAxisID:"y", order:2 },
-        { type:"line", label:"Form (TSB)", data: points.map(p => p.tsb),
+        { type:"line", label:"身体の余裕 (TSB)", data: points.map(p => p.tsb),
           borderColor:"#fc4c02", borderWidth:2, pointRadius:0, tension:0.25, yAxisID:"yTsb", order:3 },
       ],
     },
