@@ -1,22 +1,59 @@
 # strava-pmc-viewer
 
-GitHub Pages で公開可能な、**サーバにデータを保存しない** Strava Fitness &
-Freshness ビューア。
+Strava の Fitness (CTL) / Freshness (TSB) / Fatigue (ATL) を、自由にズームしたり
+過去年度と比較したりして眺めるためのビューア。
 
-各 visitor が自分の Strava で OAuth 認可 → 自分の年度を選択 → ブラウザで API
-取得 → 計算 → 描画 → ページ離脱で消去。**永続化なし / クロスユーザー共有なし
-/ 再配布なし**。Strava API Agreement §5.1 + §2.10 (own data display to that
-user only) の範囲内で運用する設計。
+## これは何
+
+- ブラウザだけで動く SPA。グラフは Chart.js
+- 認証は本人の Strava OAuth。**他人のデータは一切扱わない**
+- データは取得した本人のブラウザ内だけで計算・描画される。永続化しない、
+  サーバ送信もしない (Strava API Agreement §5.1 + §2.10 準拠)
+
+## どう動くか
+
+- 各 visitor が **自分の Strava API App + 自分の Cloudflare Worker + 自分の
+  GitHub Pages** を立てる構成。設定は SPA の「⚙ Setup」パネルで貼り付ける
+- 共有サーバを誰も運営しない。yuuji (このリポの作者) のインフラには
+  依存しない
+- Client Secret は visitor 自身の Cloudflare Worker 内に閉じる。ブラウザにも
+  リポにも漏れない
+
+セットアップ手順は **[SETUP.md](./SETUP.md)** を参照。所要時間 約 20 分。
+
+## 誰向け
+
+- Strava の標準 UI の Fitness/Freshness グラフをもっと自由に見たい人
+  (年度比較、任意区間ズーム、ピンポイント日付の前後 ±3 日詳細)
+- 自分の運動データを **自分のインフラの中だけで** 扱いたい人
+- Node.js + npm + Cloudflare アカウントを用意できる人
+
+## 利点と欠点
+
+**利点**
+
+- 完全に個人インフラで動く。運営者ゼロ
+- rate limit (Strava の 100 reads/15min) を他 user と共有しない、自分専用
+- データが第三者のサーバに渡らない
+- ToS 準拠を構造で担保しやすい (cross-user データ経路が存在しない)
+
+**欠点**
+
+- セットアップに 20 分前後かかる (Strava App 作成 + Cloudflare Worker デプロイ
+  + GitHub Pages 設定)
+- Cloudflare の無料アカウントが必要
+- ローカルで wrangler を動かすために Node.js 18+ + npm が必要
 
 ## 構成
 
 ```
-public/           # GitHub Pages がここを serve する
+public/           # GitHub Pages がここを serve する (SPA 本体)
   index.html
   style.css
   js/
     pmc.js        # TSS / CTL / ATL / TSB の純粋な計算ロジック
     auth.js       # OAuth: Worker 経由で code を token に交換
+    config.js     # visitor が貼る Client ID / Worker URL の保存
     strava.js     # Strava API client (browser)
     app.js        # UI 制御 + Chart.js 描画
 
@@ -27,73 +64,42 @@ worker/           # Cloudflare Worker (client_secret 保持)
 
 tests/
   pmc.test.js     # node --test で実行
+
+SETUP.md          # visitor 向けセットアップ手順
 ```
 
-## Setup
+## 使い方 (Setup 後)
 
-### 1. Strava で API Application 作成
-https://www.strava.com/settings/api で App を作る。Authorization Callback
-Domain には GitHub Pages の host (例: `yuujikamura.github.io`) と
-`localhost` を両方登録 (1 つしか登録できないので、開発は別 App を作る方が楽)。
-Client ID をメモ。Client Secret は Worker に渡すので保管。
-
-### 2. Cloudflare Worker をデプロイ
-```bash
-cd worker
-npm install -g wrangler
-wrangler login
-wrangler secret put STRAVA_CLIENT_ID      # ← Strava App の Client ID
-wrangler secret put STRAVA_CLIENT_SECRET  # ← Client Secret
-wrangler deploy
-```
-デプロイ後の Worker URL (例: `https://strava-pmc-relay.<account>.workers.dev`) を
-`public/js/auth.js` の `CONFIG.workerUrl` に書き換え。
-
-### 3. GitHub Pages にデプロイ
-`public/` を GitHub Pages の publish dir に設定するか、`public/` の中身を
-リポ root にコピーした gh-pages branch を作る。Pages 設定の Source が
-`public/` から serve できるなら一番楽。
-
-### 4. ローカル開発
-```bash
-# Worker
-cd worker && wrangler dev   # http://localhost:8787
-
-# 静的サイト (別 terminal)
-cd public && python -m http.server 8080
-```
-Strava の Authorization Callback Domain に `localhost` を登録した dev App を
-使う。`public/js/auth.js` の clientId を dev 用に差し替え。
-
-## 使い方
-
-1. 「Strava と接続」を押す
-2. Strava の認可画面で許可
-3. 戻ってくると年度ボタンが現れる
-4. 年度を選ぶと取得 → 描画
-5. ドラッグで範囲ズーム、ホイールも有効、チャート任意点クリックで下に ±3日詳細
-6. 「詳細値を取得」で Suffer Score / Power を追加取得 (1.6秒/件、Strava UI 値に近づく)
+1. SPA を開いて「⚙ Setup」で Client ID と Worker URL を貼り付け、保存
+2. 「Strava と接続」を押す
+3. Strava の認可画面で許可
+4. 戻ってくると年度ボタンが現れる
+5. 年度を選ぶと取得 → 描画
+6. ドラッグで範囲ズーム、ホイールも有効、チャート任意点クリックで下に
+   ±3 日詳細
+7. 「詳細値を取得」で Suffer Score / Power を追加取得 (1.6 秒/件、Strava UI
+   値に近づく)
 
 ## ToS 準拠の根拠
 
-- §5.1 「on behalf of a Strava user ... permitted to access and display data
+- **§5.1**: 「on behalf of a Strava user ... permitted to access and display data
   or functionality only for that Strava user」── 本人 OAuth + 本人 UI 表示のみ
-- §2.10 「Strava Data related to other users ... may not be displayed」── 他人
-  データを引き込む経路を持たない (friends/segments 等を呼ばない)
-- §2.14 redistribute 禁止 ── サーバに保存せず、cross-user 共有なし
-- §2.15 sublicense 禁止 ── 直接表示のみ、再頒布なし
+- **§2.10**: 「Strava Data related to other users ... may not be displayed」── 他人
+  データを引き込む経路を持たない (friends / segments 等を呼ばない)
+- **§2.14** redistribute 禁止 ── サーバに保存せず、cross-user 共有なし
+- **§2.15** sublicense 禁止 ── 直接表示のみ、再頒布なし
 
 ただし Strava は ToS 改訂が頻繁。**運用前に最新の API Agreement を確認すること**。
 
 ## 制約 / 注意
 
-- **rate limit はアプリ単位**: Worker / App 全体で 100/15min、1000/day。バズる
-  と詰む。Strava デベロッパー設定で max athletes 引き上げ申請が必要。
-- **client_secret は Worker でしか持たない**: 静的サイト側に bundle しない。
-- **token は sessionStorage**: tab を閉じれば消える。localStorage より弱いが
-  ToS 上の永続化最小化と user privacy 優先。
+- **rate limit はアプリ単位**: 自分の Strava App だけで 100 reads/15min,
+  1000 reads/day。個人利用なら十分。引き上げ申請も可能
+- **client_secret は Worker でしか持たない**: SPA 側に bundle しない
+- **token は localStorage**: 同ブラウザの本人デバイス内のみ。サーバ送信なし
 
 ## tests
+
 ```bash
 node --test tests/
 ```

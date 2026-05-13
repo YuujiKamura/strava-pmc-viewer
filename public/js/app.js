@@ -1,4 +1,5 @@
 import * as auth from "./auth.js";
+import * as config from "./config.js";
 import { fetchActivities, fetchActivityDetail } from "./strava.js";
 import { computePmc } from "./pmc.js";
 import * as cache from "./cache.js";
@@ -20,6 +21,18 @@ const dayTitle    = $("day-title");
 const dayMetrics  = $("day-metrics");
 const dayWindow   = $("day-window");
 const canvas      = $("pmc-chart");
+
+// ── setup panel refs ─────────────────────────────────────────────────────
+const setupPanel       = $("setup-panel");
+const setupToggle      = $("setup-toggle");
+const setupClientInput = $("setup-client-id");
+const setupWorkerInput = $("setup-worker-url");
+const setupSaveBtn     = $("setup-save");
+const setupClearBtn    = $("setup-clear");
+const setupStatus      = $("setup-status");
+const setupCurrent     = $("setup-current");
+const setupCurrentClient = $("setup-current-client");
+const setupCurrentWorker = $("setup-current-worker");
 
 const mCtl  = $("m-ctl"), mAtl = $("m-atl"), mTsb = $("m-tsb"), mRamp = $("m-ramp");
 const cardTsb = $("card-tsb");
@@ -49,13 +62,34 @@ const escapeHtml = s => String(s).replace(/[&<>"']/g, ch =>
 // ── boot ────────────────────────────────────────────────────────────────
 (async function boot() {
   if (DEMO_MODE) {
+    // demo は config 不要、setup パネルも隠す
+    if (setupPanel) setupPanel.hidden = true;
+    if (setupToggle) setupToggle.hidden = true;
     await bootDemo();
     return;
   }
+
+  wireSetupPanel();
+  renderSetupCurrent();
+
+  if (!config.isConfigured()) {
+    // config 未設定: setup を強制展開、接続ボタン無効化
+    openSetupPanel();
+    setupStatus.textContent = "先に Setup を完了してください (clientId と Worker URL の両方が必要)";
+    setupStatus.className = "setup-status err";
+    onDisconnectedUnconfigured();
+    return;
+  }
+
   try {
     const fromCallback = await auth.consumeAuthCodeIfPresent();
     token = fromCallback || auth.loadToken();
   } catch (e) {
+    if (e && e.message === "not_configured") {
+      openSetupPanel();
+      onDisconnectedUnconfigured();
+      return;
+    }
     showError("OAuth エラー: " + e.message);
   }
   if (token) onConnected();
@@ -129,14 +163,125 @@ function onConnected() {
 
 function onDisconnected() {
   authStatus.textContent = "未接続";
-  connectBtn.hidden = false;
-  logoutBtn.hidden  = true;
-  authShell.hidden  = false;
-  dashShell.hidden  = true;
+  connectBtn.hidden   = false;
+  connectBtn.disabled = false;
+  connectBtn.title    = "";
+  logoutBtn.hidden    = true;
+  authShell.hidden    = false;
+  dashShell.hidden    = true;
+}
+
+/** config 未設定状態。connect 押下を物理的に block (Rule 1 vibe: 認可前 gate)。 */
+function onDisconnectedUnconfigured() {
+  authStatus.textContent = "未設定";
+  connectBtn.hidden   = false;
+  connectBtn.disabled = true;
+  connectBtn.title    = "先に Setup で Client ID と Worker URL を保存してください";
+  logoutBtn.hidden    = true;
+  authShell.hidden    = false;
+  dashShell.hidden    = true;
+}
+
+// ── setup panel wiring ──────────────────────────────────────────────────
+function openSetupPanel() {
+  if (!setupPanel) return;
+  setupPanel.open = true;
+  if (setupToggle) setupToggle.setAttribute("aria-expanded", "true");
+}
+
+function closeSetupPanel() {
+  if (!setupPanel) return;
+  setupPanel.open = false;
+  if (setupToggle) setupToggle.setAttribute("aria-expanded", "false");
+}
+
+function renderSetupCurrent() {
+  if (!setupCurrent) return;
+  const cfg = config.getConfig();
+  if (!cfg) {
+    setupCurrent.hidden = true;
+    if (setupClientInput) setupClientInput.value = "";
+    if (setupWorkerInput) setupWorkerInput.value = "";
+    return;
+  }
+  setupCurrent.hidden = false;
+  // clientId は完全表示、workerUrl は origin だけ (path / token を出さない)
+  setupCurrentClient.textContent = cfg.clientId;
+  let workerLabel = cfg.workerUrl;
+  try { workerLabel = new URL(cfg.workerUrl).origin; } catch { /* keep raw */ }
+  setupCurrentWorker.textContent = workerLabel;
+  // input にも現在値を流し込む (再編集しやすく)
+  if (setupClientInput) setupClientInput.value = cfg.clientId;
+  if (setupWorkerInput) setupWorkerInput.value = cfg.workerUrl;
+}
+
+function wireSetupPanel() {
+  if (!setupPanel) return;
+
+  if (setupToggle) {
+    setupToggle.addEventListener("click", () => {
+      if (setupPanel.open) closeSetupPanel(); else openSetupPanel();
+    });
+  }
+  // <details> 自体の open 状態と aria-expanded を同期
+  setupPanel.addEventListener("toggle", () => {
+    if (setupToggle) setupToggle.setAttribute("aria-expanded", setupPanel.open ? "true" : "false");
+  });
+
+  if (setupSaveBtn) {
+    setupSaveBtn.addEventListener("click", () => {
+      const clientId  = (setupClientInput?.value || "").trim();
+      const workerUrl = (setupWorkerInput?.value || "").trim();
+      if (!clientId || !workerUrl) {
+        setupStatus.textContent = "両方の値を入力してください";
+        setupStatus.className = "setup-status err";
+        return;
+      }
+      // 簡易 validation: workerUrl は http(s) 始まり
+      if (!/^https?:\/\//i.test(workerUrl)) {
+        setupStatus.textContent = "Worker URL は http(s):// で始めてください";
+        setupStatus.className = "setup-status err";
+        return;
+      }
+      config.saveConfig({ clientId, workerUrl });
+      setupStatus.textContent = "保存しました";
+      setupStatus.className = "setup-status ok";
+      renderSetupCurrent();
+      closeSetupPanel();
+      // 接続ボタン解放 (まだ未接続の場合のみ)
+      if (!token) onDisconnected();
+    });
+  }
+
+  if (setupClearBtn) {
+    setupClearBtn.addEventListener("click", () => {
+      if (!confirm("設定を消し、保存されているトークンとローカルキャッシュも全部消しますか?")) return;
+      const athId = token?.athlete?.id;
+      cache.clearAllForAthlete(athId);
+      auth.clearToken();
+      config.clearConfig();
+      token = null;
+      activitiesCache.clear();
+      setupStatus.textContent = "クリアしました";
+      setupStatus.className = "setup-status";
+      renderSetupCurrent();
+      openSetupPanel();
+      onDisconnectedUnconfigured();
+    });
+  }
 }
 
 connectBtn.addEventListener("click", () => {
-  location.href = auth.authorizeUrl();
+  try {
+    location.href = auth.authorizeUrl();
+  } catch (e) {
+    if (e && e.message === "not_configured") {
+      openSetupPanel();
+      onDisconnectedUnconfigured();
+      return;
+    }
+    showError("認証 URL を組み立てられません: " + e.message);
+  }
 });
 logoutBtn.addEventListener("click", () => {
   const athId = token?.athlete?.id;

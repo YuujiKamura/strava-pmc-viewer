@@ -1,7 +1,7 @@
 // Strava API client (browser-side).
 // 自分のデータだけを fetch する。永続化なし、memory only。
 
-import { CONFIG, refreshIfNeeded, saveToken } from "./auth.js";
+import { refreshIfNeeded } from "./auth.js";
 
 const API = "https://www.strava.com/api/v3";
 

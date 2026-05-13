@@ -1,17 +1,26 @@
 // Strava OAuth flow (PKCE-less since Strava requires client_secret).
 // client_secret は Cloudflare Worker 側で保持、こちらは Worker に code を投げて
 // token を貰う。token は localStorage (本人 device 内のみ)。
+//
+// B 案: clientId / workerUrl は user ごとに config.js (localStorage) から読む。
+// この module はハードコード値を持たない、毎呼び出しで getConfig() を取り直す。
+
+import { getConfig } from "./config.js";
 
 const STORAGE_KEY = "strava_pmc_token_v1";
+const SCOPE = "activity:read_all";
 
-export const CONFIG = {
-  // ↓ ユーザーが setup 時に書き換えるところ。Strava で My API Application を
-  //   作って取得した client_id、Worker をデプロイしたら URL を入れる。
-  clientId:  "234530",  // demo: 自分の dev app
-  workerUrl: "http://localhost:8787",  // wrangler dev のデフォルト
-  redirectUri: location.origin + location.pathname,  // 自動: 今いる URL
-  scope: "activity:read_all",
-};
+/** redirect_uri は今いる URL (origin + pathname)、host 移動には追従しない。 */
+function redirectUri() {
+  return location.origin + location.pathname;
+}
+
+/** config 必須の操作で呼ぶ。未設定なら例外で auth フローを止める。 */
+function requireConfig() {
+  const cfg = getConfig();
+  if (!cfg) throw new Error("not_configured");
+  return cfg;
+}
 
 export function loadToken() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); }
@@ -29,21 +38,23 @@ export function clearToken() {
 }
 
 export function authorizeUrl() {
+  const cfg = requireConfig();
   const p = new URLSearchParams({
-    client_id: CONFIG.clientId,
-    redirect_uri: CONFIG.redirectUri,
+    client_id: cfg.clientId,
+    redirect_uri: redirectUri(),
     response_type: "code",
     approval_prompt: "auto",
-    scope: CONFIG.scope,
+    scope: SCOPE,
   });
   return `https://www.strava.com/oauth/authorize?${p}`;
 }
 
 export async function exchangeCode(code) {
-  const r = await fetch(CONFIG.workerUrl + "/exchange", {
+  const cfg = requireConfig();
+  const r = await fetch(cfg.workerUrl + "/exchange", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code, redirect_uri: CONFIG.redirectUri }),
+    body: JSON.stringify({ code, redirect_uri: redirectUri() }),
   });
   if (!r.ok) throw new Error(`exchange failed: ${r.status} ${await r.text()}`);
   const tok = await r.json();
@@ -56,7 +67,8 @@ export async function refreshIfNeeded(tok) {
   const now = Math.floor(Date.now() / 1000);
   if (tok.expires_at - now > 300) return tok;  // 5 分以上余裕あれば不要
 
-  const r = await fetch(CONFIG.workerUrl + "/refresh", {
+  const cfg = requireConfig();
+  const r = await fetch(cfg.workerUrl + "/refresh", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refresh_token: tok.refresh_token }),
