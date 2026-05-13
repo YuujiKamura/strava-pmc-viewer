@@ -218,7 +218,7 @@ wrangler deploy</code></pre>
                 title="現在表示中の年を Strava から再取得してキャッシュを上書き">
           最新に更新
         </button>
-        <button id="enrich-btn" class="btn btn-ghost" hidden type="button">詳細値を取得</button>
+        <button id="enrich-btn" class="btn btn-ghost" hidden type="button">パワーデータを全件取得</button>
       </div>
     </div>
 
@@ -252,7 +252,7 @@ wrangler deploy</code></pre>
       <div class="disclosure-body rate-banner">
         <strong>制限</strong>: 100 req / 15 分 · 1,000 req / 日 (個人 app 単位)。
         1 年取得は通常 1〜2 req (per_page=200、年間 200 件超で 2)。
-        詳細値取得は 1 req/件 (年 100〜300 件なら 100〜300 req、15 分制限のため 30〜45 分掛かる)。
+        パワーデータの全件取得は 1 req/件 (年 100〜300 件なら 100〜300 req、Read 制限 100/15min のため 30〜45 分掛かる)。
       </div>
     </details>
     <details class="disclosure">

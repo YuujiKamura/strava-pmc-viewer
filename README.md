@@ -61,6 +61,11 @@
 
 ## 利点と欠点
 
+**ライセンス**
+
+MIT (本 repo の [LICENSE](./LICENSE) 参照)。fork して自由に改造可、Strava ToS
+と Cloudflare 利用規約は visitor 本人が確認すること。
+
 **利点**
 
 - 完全に個人インフラで動く。運営者ゼロ
@@ -184,8 +189,22 @@ Conventional Commits ベースに以下の project-local 拡張を許容:
 - `ux:` — UI / UX 体験 (ユーザー視点) の変更。技術構造の `feat` / `fix` と区別する
 - `sec:` — security boundary (CORS / OAuth / XSS / token 取扱) の変更。
   audit / fix の両方を含む
+- `diag:` — 診断 / observability の追加 (fetchStatus への診断テキスト追加、
+  log 強化等、機能変更ではないが計装変更)
 
 scope (`fix(css):` 等) はオプション。1 commit 1 関心事を原則とする。
+
+## 既存 visitor へのお知らせ (scope default 変更)
+
+2026-05-13 以降の版では、**取得 scope の既定値を `activity:read_all` (= private
+含む全件)** に変更しました。「自分のデータを自分で分析」する用途に最適化、private
+rides も PMC 計算に反映されます。
+
+- 旧版で既に setup を済ませた visitor: setup-panel で「保存」を一度押せば、
+  scope 変化が検知されて token と cache がクリアされ、再 OAuth で広い scope に
+  切り替わります
+- public のみで使いたい visitor: setup-panel の checkbox を外して保存すれば
+  従来通り
 
 ## まとめ
 
