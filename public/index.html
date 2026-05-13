@@ -10,68 +10,108 @@
   <header class="hdr">
     <h1>フィットネス / フレッシュネス チャート</h1>
     <div class="hdr-status">
-      <span id="auth-status">未接続</span>
-      <button id="setup-toggle" class="btn" type="button" aria-controls="setup-panel" aria-expanded="false">⚙ Setup</button>
+      <span id="auth-status" class="auth-pill">未接続</span>
+      <button id="setup-toggle" class="btn btn-icon" type="button" aria-controls="setup-panel" aria-expanded="false" title="設定">⚙</button>
       <button id="connect-btn" class="btn btn-primary">Strava と接続</button>
       <button id="logout-btn" class="btn" hidden>切断</button>
     </div>
   </header>
 
   <details id="setup-panel" class="setup-panel">
-    <summary>初回セットアップ ── 自分の Strava と Cloudflare で動かす (20分)</summary>
+    <summary><span class="summary-text">設定を表示</span></summary>
     <div class="setup-body">
-      <p class="setup-intro">
-        このページは共有サーバを持ちません。あなたの Strava アカウントと、
-        あなたの Cloudflare アカウントで動かします。下記 4 ステップ完了で、
-        年度ごとのフィットネスチャートが見えるようになります。
-      </p>
 
-      <ol class="setup-steps">
-        <li>
-          <strong>Strava で API アプリを作る</strong> (約 5 分)<br>
-          <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener">strava.com/settings/api</a>
-          を開いて「Create &amp; Manage Your App」。Authorization Callback Domain には<strong>このページの host</strong>
-          (<code id="setup-host-hint">—</code>) を入れる。作成後の画面で <strong>Client ID</strong> と <strong>Client Secret</strong> を控える。
+      <!-- 3 ステップ ロードマップ -->
+      <ol class="roadmap" aria-label="セットアップの流れ">
+        <li class="roadmap-step" data-step="1">
+          <div class="roadmap-num">1</div>
+          <div class="roadmap-body">
+            <div class="roadmap-title">Strava API 設定</div>
+            <div class="roadmap-time">約 5 分</div>
+            <div class="roadmap-desc">
+              <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener">strava.com/settings/api</a>
+              で API アプリを作成。Authorization Callback Domain には
+              <code id="setup-host-hint">—</code> を入れて、Client ID と Client Secret を控える。
+            </div>
+          </div>
         </li>
-        <li>
-          <strong>Cloudflare Worker をデプロイする</strong> (約 10 分)<br>
-          Cloudflare アカウントを作成 → ターミナルで:
-          <pre><code>npm install -g wrangler
+        <li class="roadmap-arrow" aria-hidden="true">→</li>
+        <li class="roadmap-step" data-step="2">
+          <div class="roadmap-num">2</div>
+          <div class="roadmap-body">
+            <div class="roadmap-title">Cloudflare Worker 設置</div>
+            <div class="roadmap-time">約 10 分</div>
+            <div class="roadmap-desc">
+              ターミナルで下記を実行 → 表示された
+              <code>https://strava-pmc-relay.xxxx.workers.dev</code> 形式の URL を控える。
+            </div>
+            <div class="codeblock" data-lang="bash">
+              <button class="codeblock-copy btn-sm" type="button" data-copy-target="code-wrangler">コピー</button>
+              <pre><code id="code-wrangler">npm install -g wrangler
 wrangler login
 git clone &lt;このリポ&gt;
 cd strava-pmc-viewer/worker
-wrangler secret put STRAVA_CLIENT_ID       # ← step1 の Client ID を貼る
-wrangler secret put STRAVA_CLIENT_SECRET   # ← step1 の Client Secret を貼る
+wrangler secret put STRAVA_CLIENT_ID
+wrangler secret put STRAVA_CLIENT_SECRET
 wrangler deploy</code></pre>
-          デプロイ完了画面に出る URL (例: <code>https://strava-pmc-relay.xxxx.workers.dev</code>) を控える。
+            </div>
+          </div>
         </li>
-        <li>
-          <strong>下のフォームに 2 つの値を入れて「保存」</strong> (約 1 分)
-        </li>
-        <li>
-          <strong>「Strava と接続」を押す</strong> → 認可画面で許可 → 年度ボタンが現れる
+        <li class="roadmap-arrow" aria-hidden="true">→</li>
+        <li class="roadmap-step" data-step="3">
+          <div class="roadmap-num">3</div>
+          <div class="roadmap-body">
+            <div class="roadmap-title">ID と URL を保存</div>
+            <div class="roadmap-time">約 1 分</div>
+            <div class="roadmap-desc">
+              下のフォームに 2 つの値を入れて保存 → ヘッダの「Strava と接続」が押せるようになる。
+            </div>
+          </div>
         </li>
       </ol>
 
-      <div class="setup-row">
-        <label for="setup-client-id">① Strava Client ID</label>
-        <input id="setup-client-id" type="text" inputmode="numeric" autocomplete="off"
-               placeholder="12345" spellcheck="false">
-      </div>
-      <div class="setup-row">
-        <label for="setup-worker-url">② Cloudflare Worker URL</label>
-        <input id="setup-worker-url" type="text" autocomplete="off"
-               placeholder="https://strava-pmc-relay.xxxx.workers.dev" spellcheck="false">
-      </div>
-      <div class="setup-actions">
-        <button id="setup-save" class="btn btn-primary" type="button">保存</button>
-        <button id="setup-clear" class="btn" type="button">クリア</button>
-        <span id="setup-status" class="setup-status"></span>
-      </div>
-      <div id="setup-current" class="setup-current" hidden>
-        <span class="setup-current-label">設定済:</span>
-        <span>Client ID = <code id="setup-current-client"></code></span>
-        <span>Worker = <code id="setup-current-worker"></code></span>
+      <div class="setup-form">
+        <div class="setup-row">
+          <label for="setup-client-id">① Strava Client ID</label>
+          <input id="setup-client-id" type="text" inputmode="numeric" autocomplete="off"
+                 placeholder="12345" spellcheck="false">
+        </div>
+        <div class="setup-row">
+          <label for="setup-worker-url">② Cloudflare Worker URL</label>
+          <input id="setup-worker-url" type="text" autocomplete="off"
+                 placeholder="https://strava-pmc-relay.xxxx.workers.dev" spellcheck="false">
+        </div>
+        <div class="setup-row setup-row-checkbox">
+          <label for="setup-scope-readall">
+            <input id="setup-scope-readall" type="checkbox">
+            非公開アクティビティも含める (<code>activity:read_all</code>)
+          </label>
+          <span class="setup-row-hint">既定は公開のみ (<code>activity:read</code>)。最小権限の原則。</span>
+        </div>
+        <details class="setup-trust">
+          <summary>なぜ Worker を立てるのか (信頼チェーン)</summary>
+          <div class="setup-trust-body">
+            Strava OAuth は <strong>Client Secret</strong> で <code>code → access_token</code>
+            を交換する。Client Secret は <strong>絶対にブラウザ JS に置けない</strong>
+            (フォーク・改造・スクレイピングで誰でも見える = 漏洩確定)。
+            よって「あなただけが触れる小さな中継器 (Worker)」を立てて、そこに
+            Secret を置く。ブラウザは Worker 経由でしか token を取れない。<br>
+            Cloudflare 側で行うこと: secret 保持 + CORS で <strong>あなたの origin だけ</strong>
+            を許可 (`ALLOWED_ORIGIN`)。ブラウザ側で行うこと: token を
+            <code>localStorage</code> に保管 + 全 API 呼び出しでこの token を Bearer で渡す。
+            この repo の Worker は wildcard CORS (<code>*</code>) を使わない実装になってる。
+          </div>
+        </details>
+        <div class="setup-actions">
+          <button id="setup-save" class="btn btn-primary" type="button">保存</button>
+          <button id="setup-clear" class="btn btn-ghost" type="button">クリア</button>
+          <span id="setup-status" class="setup-status"></span>
+        </div>
+        <div id="setup-current" class="setup-current" hidden>
+          <span class="setup-current-label">設定済:</span>
+          <span>Client ID = <code id="setup-current-client"></code></span>
+          <span>Worker = <code id="setup-current-worker"></code></span>
+        </div>
       </div>
     </div>
   </details>
@@ -81,31 +121,20 @@ wrangler deploy</code></pre>
     <span id="demo-banner-detail"></span>
   </div>
 
+  <!-- 未認証 landing: welcome ヒーロー -->
   <main class="shell" id="auth-shell" hidden>
-    <div class="landing">
-      <h2>自分の Strava データで Fitness / Freshness を可視化</h2>
-      <p>
-        ヘッダの <strong>「Strava と接続」</strong>を押すと Strava の認証ページに飛びます。
-        許可すると戻ってきて、<strong>年度ボタン</strong>から好きな年を選択 →
-        その年のアクティビティだけ取得して<strong>Fitness (CTL) / Fatigue (ATL) / Form (TSB)</strong>
-        を計算・描画します。
+    <section class="hero" data-state="unconfigured">
+      <h2 class="hero-title">あなたの走りを可視化します</h2>
+      <p class="hero-sub">
+        Strava のアクティビティから Fitness (CTL) / Fatigue (ATL) / Form (TSB) を計算し、
+        年度ごとのトレーニング負荷をチャートで表示します。
       </p>
-      <p class="hint">
-        ✓ データはあなたのブラウザに <code>localStorage</code> でキャッシュされ、サーバには送られません。<br>
-        ✓ 一度取った年度は次回から即表示 (キャッシュから)、再取得は「最新に更新」ボタンで。<br>
-        ✓ Strava ToS §5.1 + §2.10 範囲内: 本人 OAuth + 本人 UI 表示のみ、第三者開示なし。
-      </p>
-      <p class="hint warn">
-        ⚠ <strong>Strava API レート制限</strong> (visitor 1 人 1 アプリ単位):
-        <strong>100 req / 15 分</strong> ・ <strong>1,000 req / 日</strong>。
-        <br>
-        <strong>1 年取得 ≈ 1〜2 req</strong> (per_page=200、年 200 件超だと 2 req)。
-        過去 10 年取り直しても合計 10〜20 req で、制限の足元にも届かないので普段は安心。
-        <br>
-        ただし <strong>「詳細値を取得」は 1 req/件</strong> ── 年 150 件なら 150 req、
-        15 分制限のため 30 分弱凍結を経由する。普段は無くても十分 (時間 × sport 係数で推定)。
-      </p>
-    </div>
+      <div class="hero-cta-wrap">
+        <button id="hero-start" class="btn btn-primary btn-lg" type="button">さっそく始める →</button>
+        <button id="hero-connect" class="btn btn-primary btn-lg" type="button" hidden>Strava と接続</button>
+      </div>
+      <p class="hero-assure">※ データはあなたのブラウザにのみ保存されます。サーバには送られません。</p>
+    </section>
   </main>
 
   <main class="shell" id="dash-shell" hidden>
@@ -116,25 +145,17 @@ wrangler deploy</code></pre>
       <div class="card"><div class="label">Ramp (CTL Δ/7d)</div><div class="value" id="m-ramp">—</div></div>
     </div>
 
-    <div class="rate-banner">
-      <strong>Strava API 制限</strong>: 100 req / 15 分 · 1,000 req / 日 (個人 app 単位)。
-      <span class="rate-banner-detail">
-        1 年取得 = <strong>通常 1〜2 req</strong> (per_page=200、年間 200 件超で 2)、
-        詳細値取得 = 1 req/件 (年 100〜300 件なら 100〜300 req、15 分制限のため 30〜45 分掛かる)。
-      </span>
-    </div>
-
     <div class="toolbar">
       <div class="windows" id="year-buttons"></div>
       <div class="windows-actions">
         <span class="status" id="fetch-status"></span>
-        <button id="refresh-btn" class="btn" hidden
+        <button id="refresh-btn" class="btn btn-ghost" hidden
                 title="現在表示中の年を Strava から再取得してキャッシュを上書き">
           最新に更新
         </button>
-        <button id="enrich-btn" class="btn" hidden
+        <button id="enrich-btn" class="btn btn-ghost" hidden
                 title="表示中の年について Suffer Score / Power を 1 件ずつ追加取得 (1.6秒/件、1リクエスト/件消費)">
-          詳細値を取得 (Strava UI に近い数値)
+          詳細値を取得
         </button>
       </div>
     </div>
@@ -142,7 +163,7 @@ wrangler deploy</code></pre>
     <div class="chart-wrap">
       <div class="chart-toolbar">
         <span class="zoom-status" id="zoom-status">全期間表示</span>
-        <button id="reset-zoom" class="btn btn-sm" disabled>ズームリセット</button>
+        <button id="reset-zoom" class="btn btn-sm btn-ghost" disabled>ズームリセット</button>
       </div>
       <canvas id="pmc-chart"></canvas>
     </div>
@@ -161,18 +182,42 @@ wrangler deploy</code></pre>
       </div>
       <div class="day-window" id="day-window"></div>
     </div>
+
+    <!-- 補助情報は dashboard 下部に格下げ -->
+    <details class="disclosure">
+      <summary>Strava API レート制限について</summary>
+      <div class="disclosure-body rate-banner">
+        <strong>制限</strong>: 100 req / 15 分 · 1,000 req / 日 (個人 app 単位)。
+        1 年取得は通常 1〜2 req (per_page=200、年間 200 件超で 2)。
+        詳細値取得は 1 req/件 (年 100〜300 件なら 100〜300 req、15 分制限のため 30〜45 分掛かる)。
+      </div>
+    </details>
+    <details class="disclosure">
+      <summary>プライバシーと ToS について</summary>
+      <div class="disclosure-body">
+        ✓ データはあなたのブラウザに <code>localStorage</code> でキャッシュされ、サーバには送られません。<br>
+        ✓ 一度取った年度は次回から即表示 (キャッシュから)、再取得は「最新に更新」ボタンで。<br>
+        ✓ Strava ToS §5.1 + §2.10 範囲内: 本人 OAuth + 本人 UI 表示のみ、第三者開示なし。
+      </div>
+    </details>
   </main>
 
   <footer class="ftr">
     <small>
-      Strava ToS § 5.1 + § 2.10 準拠 ── 取得データはブラウザ内 (sessionStorage)
-      のみ保持、ページ離脱で消去。クロスユーザー共有なし、再配布なし。
+      Strava ToS § 5.1 + § 2.10 準拠 ── 取得データはブラウザ内のみ保持、クロスユーザー共有なし、再配布なし。
     </small>
   </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+  <!-- CDN は version-pinned + SRI hash + crossorigin で改ざんを検知する -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+          integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g"
+          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"
+          integrity="sha384-Cs3dgUx6+jDxxuqHvVH8Onpyj2LF1gKZurLDlhqzuJmUqVYMJ0THTWpxK5Z086Zm"
+          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"
+          integrity="sha384-zPzbVRXfR492Sd5D+HydTYCxxgHAfgVO8KERbLlpeH5unsmbAEXrscGUUqLZG9BM"
+          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

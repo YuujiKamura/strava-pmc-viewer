@@ -8,7 +8,14 @@
 import { getConfig } from "./config.js";
 
 const STORAGE_KEY = "strava_pmc_token_v1";
-const SCOPE = "activity:read_all";
+// scope は最小権限を default に。public activity だけで PMC は計算できる。
+// private 活動も対象にしたい visitor は config に `scopeReadAll: true` を保存
+// (UI のチェックボックスから) すると `activity:read_all` に格上げされる。
+const SCOPE_PUBLIC = "activity:read";
+const SCOPE_ALL    = "activity:read_all";
+function scopeFor(cfg) {
+  return cfg && cfg.scopeReadAll ? SCOPE_ALL : SCOPE_PUBLIC;
+}
 
 /** redirect_uri は今いる URL (origin + pathname)、host 移動には追従しない。 */
 function redirectUri() {
@@ -44,7 +51,7 @@ export function authorizeUrl() {
     redirect_uri: redirectUri(),
     response_type: "code",
     approval_prompt: "auto",
-    scope: SCOPE,
+    scope: scopeFor(cfg),
   });
   return `https://www.strava.com/oauth/authorize?${p}`;
 }

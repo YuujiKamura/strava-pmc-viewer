@@ -5,7 +5,7 @@
 const STORAGE_KEY = "strava_pmc_config_v1";
 
 /**
- * @returns {{clientId: string, workerUrl: string} | null}
+ * @returns {{clientId: string, workerUrl: string, scopeReadAll: boolean} | null}
  *   両方埋まっていれば object、片方でも欠ければ null。
  */
 export function getConfig() {
@@ -17,21 +17,25 @@ export function getConfig() {
     const clientId  = typeof obj.clientId  === "string" ? obj.clientId.trim()  : "";
     const workerUrl = typeof obj.workerUrl === "string" ? obj.workerUrl.trim() : "";
     if (!clientId || !workerUrl) return null;
-    // workerUrl は末尾スラッシュを削って正規化 (auth.js が `/exchange` 等を連結する)
     const normalizedWorker = workerUrl.replace(/\/+$/, "");
-    return { clientId, workerUrl: normalizedWorker };
+    return {
+      clientId,
+      workerUrl: normalizedWorker,
+      scopeReadAll: !!obj.scopeReadAll,
+    };
   } catch {
     return null;
   }
 }
 
 /**
- * @param {{clientId: string, workerUrl: string}} cfg
+ * @param {{clientId: string, workerUrl: string, scopeReadAll?: boolean}} cfg
  */
-export function saveConfig({ clientId, workerUrl }) {
+export function saveConfig({ clientId, workerUrl, scopeReadAll }) {
   const payload = {
     clientId:  String(clientId  || "").trim(),
     workerUrl: String(workerUrl || "").trim().replace(/\/+$/, ""),
+    scopeReadAll: !!scopeReadAll,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }

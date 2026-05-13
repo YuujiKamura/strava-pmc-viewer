@@ -34,7 +34,12 @@ const setupCurrent     = $("setup-current");
 const setupCurrentClient = $("setup-current-client");
 const setupCurrentWorker = $("setup-current-worker");
 const setupHostHint      = $("setup-host-hint");
+const setupScopeReadAll  = $("setup-scope-readall");
 if (setupHostHint) setupHostHint.textContent = location.host || location.hostname || "—";
+
+// hero / wizard refs
+const heroStartBtn   = $("hero-start");
+const heroConnectBtn = $("hero-connect");
 
 const mCtl  = $("m-ctl"), mAtl = $("m-atl"), mTsb = $("m-tsb"), mRamp = $("m-ramp");
 const cardTsb = $("card-tsb");
@@ -72,7 +77,10 @@ const escapeHtml = s => String(s).replace(/[&<>"']/g, ch =>
   }
 
   wireSetupPanel();
+  wireCopyButtons();
+  wireHero();
   renderSetupCurrent();
+  refreshWizardSteps();
 
   if (!config.isConfigured()) {
     // config 未設定: setup を強制展開、接続ボタン無効化
@@ -155,33 +163,137 @@ function showDemoLoadError(e) {
 
 function onConnected() {
   authStatus.textContent = `接続済${token.athlete ? ` (${token.athlete.firstname || ""} ${token.athlete.lastname || ""})` : ""}`;
+  authStatus.classList.add("connected");
   connectBtn.hidden = true;
   logoutBtn.hidden  = false;
   authShell.hidden  = true;
   dashShell.hidden  = false;
+  refreshWizardSteps();
   renderYearButtons();
   selectYear(new Date().getFullYear());
 }
 
 function onDisconnected() {
   authStatus.textContent = "未接続";
+  authStatus.classList.remove("connected");
   connectBtn.hidden   = false;
   connectBtn.disabled = false;
   connectBtn.title    = "";
   logoutBtn.hidden    = true;
   authShell.hidden    = false;
   dashShell.hidden    = true;
+  // configured + token無し: hero CTA を「Strava と接続」に切り替え
+  if (heroStartBtn && heroConnectBtn) {
+    heroStartBtn.hidden = true;
+    heroConnectBtn.hidden = false;
+  }
+  const hero = document.querySelector(".hero");
+  if (hero) hero.setAttribute("data-state", "configured");
+  refreshWizardSteps();
 }
 
 /** config 未設定状態。connect 押下を物理的に block (Rule 1 vibe: 認可前 gate)。 */
 function onDisconnectedUnconfigured() {
   authStatus.textContent = "未設定";
+  authStatus.classList.remove("connected");
   connectBtn.hidden   = false;
   connectBtn.disabled = true;
-  connectBtn.title    = "先に Setup で Client ID と Worker URL を保存してください";
+  connectBtn.title    = "先に設定で Client ID と Worker URL を保存してください";
   logoutBtn.hidden    = true;
   authShell.hidden    = false;
   dashShell.hidden    = true;
+  // unconfigured: hero CTA は「さっそく始める」(setup を開く)
+  if (heroStartBtn && heroConnectBtn) {
+    heroStartBtn.hidden = false;
+    heroConnectBtn.hidden = true;
+  }
+  const hero = document.querySelector(".hero");
+  if (hero) hero.setAttribute("data-state", "unconfigured");
+  refreshWizardSteps();
+}
+
+// ── wizard step (roadmap) state ─────────────────────────────────────────
+/**
+ * 3 ステップカードの active/done を minimal 反映:
+ *   - config 未設定: step1 active
+ *   - clientId だけ入力された (= step1完了相当だが Worker URL 未): step2 active, step1 done
+ *   - 両方保存済 (configured) で token 無: step3 done, step2 done, step1 done (全完了表示) → ただし接続未完なので step3 を active 強調
+ *   - 認証済: 全 done
+ */
+function refreshWizardSteps() {
+  const steps = document.querySelectorAll(".roadmap-step");
+  if (!steps.length) return;
+  const cfg = (typeof config !== "undefined" && config.getConfig) ? config.getConfig() : null;
+  const clientTyped = (setupClientInput?.value || "").trim();
+  const workerTyped = (setupWorkerInput?.value || "").trim();
+  const isConfigured = !!cfg;
+  const isConnected = !!token;
+
+  let activeIdx;   // 1-based
+  let doneUpTo;    // 1-based, inclusive
+  if (isConnected) {
+    activeIdx = 0;     // no active highlight, all done
+    doneUpTo = 3;
+  } else if (isConfigured) {
+    activeIdx = 3;
+    doneUpTo = 2;
+  } else if (clientTyped && !workerTyped) {
+    activeIdx = 2;
+    doneUpTo = 1;
+  } else if (clientTyped && workerTyped) {
+    activeIdx = 3;
+    doneUpTo = 2;
+  } else {
+    activeIdx = 1;
+    doneUpTo = 0;
+  }
+
+  steps.forEach(el => {
+    const n = Number(el.dataset.step);
+    el.classList.toggle("done", n <= doneUpTo);
+    el.classList.toggle("active", n === activeIdx);
+  });
+}
+
+// ── copy buttons (dark code blocks) ──────────────────────────────────────
+function wireCopyButtons() {
+  for (const btn of document.querySelectorAll(".codeblock-copy")) {
+    btn.addEventListener("click", async () => {
+      const targetId = btn.dataset.copyTarget;
+      const codeEl = targetId ? document.getElementById(targetId) : null;
+      if (!codeEl) return;
+      const text = codeEl.textContent || "";
+      try {
+        await navigator.clipboard.writeText(text);
+        const orig = btn.textContent;
+        btn.textContent = "コピー済";
+        btn.classList.add("copied");
+        setTimeout(() => {
+          btn.textContent = orig;
+          btn.classList.remove("copied");
+        }, 1500);
+      } catch (e) {
+        console.error("clipboard write failed", e);
+      }
+    });
+  }
+}
+
+// ── hero CTA ─────────────────────────────────────────────────────────────
+function wireHero() {
+  if (heroStartBtn) {
+    heroStartBtn.addEventListener("click", () => {
+      openSetupPanel();
+      // scroll into view so user can immediately see the wizard
+      setTimeout(() => setupPanel?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    });
+  }
+  if (heroConnectBtn) {
+    heroConnectBtn.addEventListener("click", () => {
+      // 既存の connectBtn と同じ動作
+      connectBtn.click();
+    });
+  }
 }
 
 // ── setup panel wiring ──────────────────────────────────────────────────
@@ -202,19 +314,19 @@ function renderSetupCurrent() {
   const cfg = config.getConfig();
   if (!cfg) {
     setupCurrent.hidden = true;
-    if (setupClientInput) setupClientInput.value = "";
-    if (setupWorkerInput) setupWorkerInput.value = "";
+    if (setupClientInput)    setupClientInput.value = "";
+    if (setupWorkerInput)    setupWorkerInput.value = "";
+    if (setupScopeReadAll)   setupScopeReadAll.checked = false;
     return;
   }
   setupCurrent.hidden = false;
-  // clientId は完全表示、workerUrl は origin だけ (path / token を出さない)
   setupCurrentClient.textContent = cfg.clientId;
   let workerLabel = cfg.workerUrl;
   try { workerLabel = new URL(cfg.workerUrl).origin; } catch { /* keep raw */ }
   setupCurrentWorker.textContent = workerLabel;
-  // input にも現在値を流し込む (再編集しやすく)
-  if (setupClientInput) setupClientInput.value = cfg.clientId;
-  if (setupWorkerInput) setupWorkerInput.value = cfg.workerUrl;
+  if (setupClientInput)    setupClientInput.value = cfg.clientId;
+  if (setupWorkerInput)    setupWorkerInput.value = cfg.workerUrl;
+  if (setupScopeReadAll)   setupScopeReadAll.checked = !!cfg.scopeReadAll;
 }
 
 function wireSetupPanel() {
@@ -234,24 +346,25 @@ function wireSetupPanel() {
     setupSaveBtn.addEventListener("click", () => {
       const clientId  = (setupClientInput?.value || "").trim();
       const workerUrl = (setupWorkerInput?.value || "").trim();
+      const scopeReadAll = !!(setupScopeReadAll && setupScopeReadAll.checked);
       if (!clientId || !workerUrl) {
         setupStatus.textContent = "両方の値を入力してください";
         setupStatus.className = "setup-status err";
         return;
       }
-      // 簡易 validation: workerUrl は http(s) 始まり
       if (!/^https?:\/\//i.test(workerUrl)) {
         setupStatus.textContent = "Worker URL は http(s):// で始めてください";
         setupStatus.className = "setup-status err";
         return;
       }
-      config.saveConfig({ clientId, workerUrl });
+      config.saveConfig({ clientId, workerUrl, scopeReadAll });
       setupStatus.textContent = "保存しました";
       setupStatus.className = "setup-status ok";
       renderSetupCurrent();
       closeSetupPanel();
       // 接続ボタン解放 (まだ未接続の場合のみ)
       if (!token) onDisconnected();
+      refreshWizardSteps();
     });
   }
 
@@ -269,7 +382,13 @@ function wireSetupPanel() {
       renderSetupCurrent();
       openSetupPanel();
       onDisconnectedUnconfigured();
+      refreshWizardSteps();
     });
+  }
+
+  // input 入力で wizard step を minimal 反映 (configured 切替前の typed 状態)
+  for (const el of [setupClientInput, setupWorkerInput]) {
+    if (el) el.addEventListener("input", refreshWizardSteps);
   }
 }
 

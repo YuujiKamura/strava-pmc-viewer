@@ -98,6 +98,44 @@ SETUP.md          # visitor 向けセットアップ手順
 - **client_secret は Worker でしか持たない**: SPA 側に bundle しない
 - **token は localStorage**: 同ブラウザの本人デバイス内のみ。サーバ送信なし
 
+## セキュリティ設計の言語化
+
+「AI 生成ツールは認証情報を雑に扱う」という批評を受けやすいので、本リポが
+実装している防御を列挙する。
+
+| 項目 | 実装 | 場所 |
+|---|---|---|
+| **Client Secret の隔離** | ブラウザ JS に絶対 bundle しない、Worker 側 `wrangler secret put` で保持 | `worker/index.js` |
+| **CORS allowlist** | `ALLOWED_ORIGIN` (カンマ区切り) で `Access-Control-Allow-Origin` を制限。wildcard `*` を返さない | `worker/index.js` `corsHeaders()` |
+| **最小権限の OAuth scope** | 既定 `activity:read` (公開のみ)。`activity:read_all` は visitor が UI で明示的に opt-in した時のみ | `public/js/auth.js` `scopeFor()` |
+| **CDN 改ざん検知** | jsdelivr 上の Chart.js / Hammer / zoom plugin に `integrity="sha384-..."` + `crossorigin="anonymous"` で SRI hash 検証 | `public/index.html` |
+| **429 backoff** | Strava の `Retry-After` ヘッダを尊重して 1 回だけ再試行、上限 15 分、無限ループ防止 | `public/js/strava.js` `get()` |
+| **token 永続化の限界** | `localStorage` (本人デバイス内、サーバ送信なし)。第三者スクリプト侵入時のリスクは SRI で 1 層、Worker CORS で 1 層、`worker/index.js` の secret 隔離で 1 層、と多段化 | 〃 |
+| **データ最小化** | Strava の他人データ (segments / following / club 等) は一切 fetch しない、本人 activity 一覧のみ | `public/js/strava.js` |
+
+### localStorage を選んだ理由
+
+HttpOnly Cookie は backend が必要。本リポは静的 SPA + Cloudflare Worker
+(CORS proxy) の構成で、Cookie を発行する backend を持たない (持つと「Worker
+が user データを観測できる」状態になり ToS 上の最小化原則に反する)。
+よって brower-side で完結する localStorage を選び、その既知の弱点 (XSS で
+盗まれる) を SRI + CORS + secret 隔離で多段に潰す方針。
+
+### 信頼チェーン
+
+```
+你 (visitor)
+  └→ Strava (本人 OAuth、authorize 画面で scope と app を本人が確認)
+  └→ Cloudflare Worker (本人デプロイ、本人 secret、本人 ALLOWED_ORIGIN)
+  └→ GitHub Pages (本リポを fork してた場合は本人のコード、改造可視)
+  └→ jsdelivr (Chart.js / Hammer / zoom plugin、SRI hash で改ざん検知)
+  └→ Strava API (Bearer token のみ、Worker は token を保持しない)
+```
+
+どの段が compromise されても、隣接段への影響を限定する設計にしてある。
+ただし「本人デバイス自体がマルウェア感染」は本ツールの防御範囲外
+(localStorage を抜かれる)、これは OS / browser 側の問題。
+
 ## tests
 
 ```bash
