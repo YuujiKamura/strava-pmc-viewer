@@ -1,7 +1,9 @@
 import * as auth from "./auth.js";
 import * as config from "./config.js";
 import { fetchActivities, fetchActivityDetail } from "./strava.js";
-import { computePmc } from "./pmc.js";
+import {
+  computePmc, decayForward, hoursUntilFresh, lastActivityEndMs,
+} from "./pmc.js";
 import * as cache from "./cache.js";
 
 // ── DOM refs ──────────────────────────────────────────────────────────────
@@ -50,23 +52,74 @@ const cardsAsOf = $("cards-asof");
 function updateCards(points, idx) {
   if (!points.length) return;
   const p = points[idx];
-  mCtl.textContent  = p.ctl.toFixed(1);
-  mAtl.textContent  = p.atl.toFixed(1);
-  mTsb.textContent  = p.tsb.toFixed(1);
-  cardTsb.classList.toggle("tsb-pos", p.tsb >= 0);
-  cardTsb.classList.toggle("tsb-neg", p.tsb < 0);
+  // 「今日」の card 表示時、最終 activity 終了時刻からの経過時間で時間粒度の
+  // 連続時間減衰を適用する。日単位 EMA の point は「その日 EOD」相当なので、
+  // 経過時間が 0 以下なら point 値そのまま、正なら decayForward で滑らかに減衰。
+  const isToday = (idx === currentTodayIdx);
+  let displayCtl = p.ctl, displayAtl = p.atl, displayTsb = p.tsb;
+  let elapsedHours = 0;
+  if (isToday && currentLastEndMs != null) {
+    elapsedHours = (Date.now() - currentLastEndMs) / 3.6e6;
+    if (elapsedHours > 0) {
+      const adj = decayForward({ ctl: p.ctl, atl: p.atl }, elapsedHours);
+      displayCtl = adj.ctl; displayAtl = adj.atl; displayTsb = adj.tsb;
+    }
+  }
+  mCtl.textContent  = displayCtl.toFixed(1);
+  mAtl.textContent  = displayAtl.toFixed(1);
+  mTsb.textContent  = displayTsb.toFixed(1);
+  cardTsb.classList.toggle("tsb-pos", displayTsb >= 0);
+  cardTsb.classList.toggle("tsb-neg", displayTsb < 0);
   const ramp = idx >= 7 ? (p.ctl - points[idx - 7].ctl) : null;
   mRamp.textContent = ramp != null ? ramp.toFixed(1) : "—";
-  if (cardsAsOf) cardsAsOf.textContent = `${p.date} 時点`;
+  if (cardsAsOf) {
+    if (isToday && elapsedHours > 0) {
+      cardsAsOf.textContent = `現在 (最終記録から ${formatElapsed(elapsedHours)} 経過) の推計`;
+    } else if (isToday) {
+      cardsAsOf.textContent = `${p.date} の最新記録直後のスナップショット`;
+    } else {
+      cardsAsOf.textContent = `${p.date} 時点のスナップショット`;
+    }
+  }
 
-  // リカバリー予測 (TSS=0 を仮定した場合の TSB が future points に既に
-  // 計算済み)。points 配列を逆引きするだけ、追加計算なし。
-  // 注意: 5/14 以降に活動が記録された日があると forecast の前提 (休む)
-  // が崩れるので、idx 以降を「TSS が 0 の連続区間」だけ取って予測する。
+  // リカバリー予測。今日表示時は時間粒度で「あと N 日 H 時間で身体の余裕が
+  // 戻る」を解析的に計算 (hoursUntilFresh)。それ以外は従来の point 逆引き。
   const forecast = forecastFromPoints(points, idx);
-  renderForecast(forecast);
+  if (isToday && currentLastEndMs != null && displayAtl > displayCtl) {
+    const h = hoursUntilFresh({ ctl: displayCtl, atl: displayAtl });
+    renderForecastHours(h);
+  } else {
+    renderForecast(forecast);
+  }
 
-  setConditionAdvice(p.ctl, p.atl, p.tsb, ramp, forecast);
+  setConditionAdvice(displayCtl, displayAtl, displayTsb, ramp, forecast);
+}
+
+/** 時間数 → 「N 日 H 時間」or 「H 時間 M 分」 */
+function formatElapsed(hours) {
+  if (hours < 1) {
+    const m = Math.max(0, Math.round(hours * 60));
+    return `${m} 分`;
+  }
+  if (hours < 24) {
+    const h = Math.floor(hours);
+    const m = Math.round((hours - h) * 60);
+    return m > 0 ? `${h} 時間 ${m} 分` : `${h} 時間`;
+  }
+  const d = Math.floor(hours / 24);
+  const h = Math.round(hours - d * 24);
+  return h > 0 ? `${d} 日 ${h} 時間` : `${d} 日`;
+}
+
+/** hoursUntilFresh の結果を「あと N 日 H 時間で身体の余裕が戻る」表記に */
+function renderForecastHours(hours) {
+  const el = document.getElementById("cards-forecast");
+  if (!el) return;
+  if (hours == null || !Number.isFinite(hours) || hours <= 0) {
+    el.innerHTML = "";
+    return;
+  }
+  el.innerHTML = `休めば → 余裕に戻るまで <strong>${formatElapsed(hours)}</strong>`;
 }
 
 /**
@@ -156,6 +209,7 @@ let activitiesCache = new Map();  // year → Array<Activity>
 let currentYear = null;
 let currentPoints = null;         // 「現在時刻に戻る」用の最新 points 参照
 let currentTodayIdx = 0;          // 現在年での「今日」相当の idx
+let currentLastEndMs = null;      // 現在年の最終 activity 終了時刻 (ms epoch)、時間粒度の減衰起点
 
 import { escapeHtml } from "./util.js";
 
@@ -579,6 +633,10 @@ function render(year, activities) {
   }
   currentPoints = points;
   currentTodayIdx = refIdx;
+  // 時間粒度の連続時間減衰の起点 = 最終 activity 終了時刻 (start_date + elapsed_time)。
+  // 当年表示の時だけ意味があるので、refIdx が末尾 (= 過去年表示) なら null にしておく。
+  const isCurrentYearView = (points[refIdx]?.date <= todayStr) && (refIdx < points.length - 1 || todayStr.startsWith(String(year)));
+  currentLastEndMs = isCurrentYearView ? lastActivityEndMs(activities) : null;
   updateCards(points, refIdx);
 
   // activities by date for click-panel

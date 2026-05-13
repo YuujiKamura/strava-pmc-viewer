@@ -117,3 +117,74 @@ export function computePmc(activities, { from, to, ftp = DEFAULT_FTP }) {
 }
 
 function round1(n) { return Math.round(n * 10) / 10; }
+
+/**
+ * activities の中で「最後に運動を終えた瞬間」を ms epoch で返す。
+ * end = start_date + elapsed_time。これ以降は TSS = 0 区間で連続減衰させる。
+ * @param {Array<object>} activities
+ * @returns {number|null} ms epoch (UTC) または activity が無ければ null
+ */
+export function lastActivityEndMs(activities) {
+  let max = 0;
+  for (const a of activities) {
+    if (!a.start_date) continue;
+    const t = Date.parse(a.start_date);
+    if (!Number.isFinite(t)) continue;
+    const end = t + ((Number(a.elapsed_time) || 0) * 1000);
+    if (end > max) max = end;
+  }
+  return max || null;
+}
+
+/**
+ * 「TSS = 0 区間で hoursAhead 時間経過した時の CTL / ATL / TSB」を返す。
+ * 日単位 EMA `y_{n+1} = y_n + (TSS - y_n)/N` は連続時間で
+ * `dy/dt = (TSS - y)/N` (時間単位は日)、TSS=0 区間では `y(t) = y0 * exp(-t/N)`。
+ * 「身体は時計の針が進むごとに回復する」を時間粒度で素直に表現する。
+ *
+ * @param {{ctl: number, atl: number}} prev 日単位 point (computePmc の最新点)
+ * @param {number} hoursAhead 経過時間 (時間)、負なら 0 に clamp
+ * @returns {{ctl: number, atl: number, tsb: number, hoursAhead: number}}
+ */
+export function decayForward(prev, hoursAhead) {
+  const h = Math.max(0, Number(hoursAhead) || 0);
+  const days = h / 24;
+  const ctl = (prev.ctl || 0) * Math.exp(-days / CTL_DAYS);
+  const atl = (prev.atl || 0) * Math.exp(-days / ATL_DAYS);
+  // TSB は Friel convention に揃え、ここでも「現在の CTL - 現在の ATL」で簡易計算。
+  // (本来の Friel は前日 CTL - 前日 ATL だが、現在時刻スナップショットでは現値で OK)
+  return { ctl: round1(ctl), atl: round1(atl), tsb: round1(ctl - atl), hoursAhead: h };
+}
+
+/**
+ * 「TSS = 0 のまま CTL / ATL が任意の閾値に達するまで何時間かかるか」を解析的に解く。
+ * `y(t) = y0 * exp(-t/N)` を target で解いて hours を返す。
+ * @param {number} y0 起点の値 (ATL or CTL)
+ * @param {number} target 目標値 (例: TSB が 0 になる ATL = CTL)
+ * @param {number} tauDays 7 (ATL) or 42 (CTL)
+ * @returns {number|null} 時間 (時間単位)、到達不能 (y0 <= target または値が 0) なら null
+ */
+export function hoursUntilDecayTo(y0, target, tauDays) {
+  if (!Number.isFinite(y0) || !Number.isFinite(target)) return null;
+  if (y0 <= 0 || target <= 0) return null;
+  if (y0 <= target) return 0;
+  const days = tauDays * Math.log(y0 / target);
+  return days * 24;
+}
+
+/**
+ * 「TSS = 0 のまま CTL = ATL (= TSB が 0) になるまで何時間か」を解析的に。
+ * 連続時間モデル: ctl0 * exp(-t/42) = atl0 * exp(-t/7) を t について解く。
+ * t = (1/7 - 1/42)^-1 * ln(atl0 / ctl0) = (8.4) * ln(atl0 / ctl0) days
+ * @param {{ctl: number, atl: number}} prev
+ * @returns {number|null} 時間、ATL <= CTL (= TSB >= 0) なら 0、解不能なら null
+ */
+export function hoursUntilFresh(prev) {
+  const a = Number(prev.atl), c = Number(prev.ctl);
+  if (!Number.isFinite(a) || !Number.isFinite(c)) return null;
+  if (a <= 0 || c <= 0) return null;
+  if (a <= c) return 0;
+  // 1/7 - 1/42 = 6/42 - 1/42 = 5/42  →  days = (42/5) * ln(a/c) = 8.4 * ln(a/c)
+  const days = (42 / 5) * Math.log(a / c);
+  return days * 24;
+}
