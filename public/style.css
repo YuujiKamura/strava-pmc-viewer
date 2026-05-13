@@ -416,9 +416,20 @@ body {
   font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
   color: var(--muted);
 }
-.card .value { font-size: 1.5rem; font-weight: 600; line-height: 1.1; margin-top: 0.2rem; }
+.card .label-human { font-size: 0.88rem; color: var(--fg); font-weight: 600; }
+.card .label-tech  { font-size: 0.65rem; color: var(--muted-2); margin-top: 0.2rem; letter-spacing: 0.02em; }
+.card .value { font-size: 1.8rem; font-weight: 700; line-height: 1.1; margin: 0.25rem 0; }
 .card.tsb-pos .value { color: var(--pos); }
 .card.tsb-neg .value { color: var(--neg); }
+.condition-advice {
+  margin: 0 0 1rem; padding: 0.6rem 0.9rem;
+  background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px;
+  color: #6b5800; font-size: 0.88rem; line-height: 1.5;
+}
+.condition-advice:empty { display: none; }
+.condition-advice.pos { background: #f0f7f1; border-color: #cfe5d4; color: var(--pos); }
+.condition-advice.neg { background: #fdecec; border-color: #f0c5c5; color: var(--neg); }
+.condition-advice.neutral { background: #f4f4f4; border-color: var(--line); color: var(--fg-soft); }
 
 /* ── Toolbar ─────────────────────────────────────────── */
 .toolbar {

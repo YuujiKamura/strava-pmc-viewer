@@ -197,11 +197,29 @@ wrangler deploy</code></pre>
     </div>
 
     <div class="cards">
-      <div class="card"><div class="label">CTL (Fitness)</div><div class="value" id="m-ctl">—</div></div>
-      <div class="card"><div class="label">ATL (Fatigue)</div><div class="value" id="m-atl">—</div></div>
-      <div class="card" id="card-tsb"><div class="label">TSB (Form)</div><div class="value" id="m-tsb">—</div></div>
-      <div class="card"><div class="label">Ramp (CTL Δ/7d)</div><div class="value" id="m-ramp">—</div></div>
+      <div class="card">
+        <div class="label-human">体力</div>
+        <div class="value" id="m-ctl">—</div>
+        <div class="label-tech">CTL (Fitness、42日 EMA)</div>
+      </div>
+      <div class="card">
+        <div class="label-human">直近の疲れ</div>
+        <div class="value" id="m-atl">—</div>
+        <div class="label-tech">ATL (Fatigue、7日 EMA)</div>
+      </div>
+      <div class="card" id="card-tsb">
+        <div class="label-human">身体の余裕</div>
+        <div class="value" id="m-tsb">—</div>
+        <div class="label-tech">TSB (Form = 前日CTL − 前日ATL)</div>
+      </div>
+      <div class="card">
+        <div class="label-human">体力の伸び</div>
+        <div class="value" id="m-ramp">—</div>
+        <div class="label-tech">Ramp (CTL Δ/7日)</div>
+      </div>
     </div>
+
+    <p class="condition-advice" id="condition-advice"></p>
 
     <div class="toolbar">
       <div class="windows" id="year-buttons"></div>
@@ -227,10 +245,11 @@ wrangler deploy</code></pre>
     </div>
 
     <div class="legend-note">
-      青 = Fitness (CTL, 42日 EMA) ·
-      ピンク = Fatigue (ATL, 7日 EMA) ·
-      オレンジ = Form (TSB)。
-      グレー点 = 各日 TSS。ドラッグで範囲ズーム、ホイールも有効、チャート任意点クリックで下に詳細表示。
+      青 = 体力 (CTL) ·
+      ピンク = 直近の疲れ (ATL) ·
+      オレンジ = 身体の余裕 (TSB) ·
+      グレー点 = 今日の負荷 (TSS)。<br>
+      ドラッグで範囲ズーム、ホイールも有効、チャート任意点クリックで下にその日と前後のアクティビティ。
     </div>
 
     <div class="day-detail">

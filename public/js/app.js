@@ -43,6 +43,35 @@ const heroConnectBtn = $("hero-connect");
 
 const mCtl  = $("m-ctl"), mAtl = $("m-atl"), mTsb = $("m-tsb"), mRamp = $("m-ramp");
 const cardTsb = $("card-tsb");
+const conditionAdvice = $("condition-advice");
+
+function setConditionAdvice(ctl, atl, tsb, ramp) {
+  if (!conditionAdvice) return;
+  let msg = "", cls = "neutral";
+  if (tsb <= -20) {
+    msg = `身体の余裕 ${tsb.toFixed(0)} ── かなり疲れが溜まっています。レースなら直前テーパー、それ以外なら 2〜3 日休んでもいい時期です。`;
+    cls = "neg";
+  } else if (tsb <= -10) {
+    msg = `身体の余裕 ${tsb.toFixed(0)} ── 疲労が溜まり気味。強度を落とすか、軽い日を挟みましょう。`;
+    cls = "neg";
+  } else if (tsb >= 15) {
+    msg = `身体の余裕 +${tsb.toFixed(0)} ── 休みすぎ気味かも。レース直前ならピーキング完了、平時なら少し負荷を入れていい状態。`;
+    cls = "pos";
+  } else if (tsb >= 5) {
+    msg = `身体の余裕 +${tsb.toFixed(0)} ── 調子良好。レースや高強度に向けて好機。`;
+    cls = "pos";
+  } else {
+    msg = `身体の余裕 ${tsb.toFixed(0)} ── ほぼ中庸。継続的にトレーニングを積める範囲です。`;
+    cls = "neutral";
+  }
+  if (ramp != null) {
+    if (ramp >= 7)      msg += ` 体力の伸び +${ramp.toFixed(1)}/週 ── 急増しすぎ、怪我リスク域。`;
+    else if (ramp >= 3) msg += ` 体力の伸び +${ramp.toFixed(1)}/週 ── 順調に底力アップ中。`;
+    else if (ramp <= -3) msg += ` 体力の伸び ${ramp.toFixed(1)}/週 ── 体力低下中、休みすぎなら戻しを。`;
+  }
+  conditionAdvice.textContent = msg;
+  conditionAdvice.className = "condition-advice " + cls;
+}
 
 // demo mode 完全廃止 (2026-05-13): user 訂正「俺のデータを他の人間に見せられる
 // わけがない」── プライバシー謳うツールが他人 (yuuji) の実データを demo として
@@ -465,6 +494,7 @@ function render(year, activities) {
   cardTsb.classList.toggle("tsb-neg", today.tsb < 0);
   const ramp = points.length > 7 ? (today.ctl - points[points.length - 8].ctl) : null;
   mRamp.textContent = ramp != null ? ramp.toFixed(1) : "—";
+  setConditionAdvice(today.ctl, today.atl, today.tsb, ramp);
 
   // activities by date for click-panel
   const byDate = new Map();
