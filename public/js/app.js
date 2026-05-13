@@ -48,26 +48,39 @@ const conditionAdvice = $("condition-advice");
 function setConditionAdvice(ctl, atl, tsb, ramp) {
   if (!conditionAdvice) return;
   let msg = "", cls = "neutral";
+
+  // Low-data branch: CTL も ATL も極端に小さいなら、TSB が ±0 でも「コンディション」を語る土台がない。
+  // 機械的に「中庸」と訳すのを止めて、状況を素直に伝える。
+  if (ctl < 10 && atl < 10) {
+    msg = `データ収集中 ── この期間の活動量がまだ薄く、フィットネス曲線を語るに足りません。続けて記録を貯めると数値が動き始めます。`;
+    cls = "neutral";
+    conditionAdvice.textContent = msg;
+    conditionAdvice.className = "condition-advice " + cls;
+    return;
+  }
+
+  // TSB のしきい値判定 (Coggan 系の慣用) を「次のアクション」言葉に翻訳
   if (tsb <= -20) {
-    msg = `身体の余裕 ${tsb.toFixed(0)} ── かなり疲れが溜まっています。レースなら直前テーパー、それ以外なら 2〜3 日休んでもいい時期です。`;
+    msg = `かなり疲労が溜まっています ── レース直前ならテーパー (調整) のタイミング。平時なら 2〜3 日完全休養を入れると伸びます。 (TSB ${tsb.toFixed(0)})`;
     cls = "neg";
   } else if (tsb <= -10) {
-    msg = `身体の余裕 ${tsb.toFixed(0)} ── 疲労が溜まり気味。強度を落とすか、軽い日を挟みましょう。`;
+    msg = `疲労が溜まり気味 ── 強度を落とすか、軽い日を 1 日挟むと回復が進みます。 (TSB ${tsb.toFixed(0)})`;
     cls = "neg";
-  } else if (tsb >= 15) {
-    msg = `身体の余裕 +${tsb.toFixed(0)} ── 休みすぎ気味かも。レース直前ならピーキング完了、平時なら少し負荷を入れていい状態。`;
+  } else if (tsb >= 20) {
+    msg = `フレッシュ (休みすぎ気味) ── レース直前ならピーキング完了状態。平時なら少し負荷を入れていい時期です。 (TSB +${tsb.toFixed(0)})`;
     cls = "pos";
   } else if (tsb >= 5) {
-    msg = `身体の余裕 +${tsb.toFixed(0)} ── 調子良好。レースや高強度に向けて好機。`;
+    msg = `今日はいくらでも追い込めます ── 疲労抜けが十分、レースや高強度の好機。 (TSB +${tsb.toFixed(0)})`;
     cls = "pos";
   } else {
-    msg = `身体の余裕 ${tsb.toFixed(0)} ── ほぼ中庸。継続的にトレーニングを積める範囲です。`;
+    msg = `フラット (平常運転) ── 疲労も溜まっていないし、特別積み上げてもいない状態。続けてトレーニングを積めます。 (TSB ${tsb.toFixed(0)})`;
     cls = "neutral";
   }
+
   if (ramp != null) {
-    if (ramp >= 7)      msg += ` 体力の伸び +${ramp.toFixed(1)}/週 ── 急増しすぎ、怪我リスク域。`;
-    else if (ramp >= 3) msg += ` 体力の伸び +${ramp.toFixed(1)}/週 ── 順調に底力アップ中。`;
-    else if (ramp <= -3) msg += ` 体力の伸び ${ramp.toFixed(1)}/週 ── 体力低下中、休みすぎなら戻しを。`;
+    if (ramp >= 7)       msg += ` 持久力ベースが急増中 (+${ramp.toFixed(1)}/週) ── 怪我リスク域、強度の伸ばし方注意。`;
+    else if (ramp >= 3)  msg += ` 持久力ベースが順調に伸びています (+${ramp.toFixed(1)}/週)。`;
+    else if (ramp <= -3) msg += ` 持久力ベースが下降中 (${ramp.toFixed(1)}/週) ── 休みすぎなら戻しを。`;
   }
   conditionAdvice.textContent = msg;
   conditionAdvice.className = "condition-advice " + cls;
