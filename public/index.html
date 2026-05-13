@@ -18,23 +18,48 @@
   </header>
 
   <details id="setup-panel" class="setup-panel">
-    <summary>Setup ── 自分の Strava App と Cloudflare Worker を登録</summary>
+    <summary>初回セットアップ ── 自分の Strava と Cloudflare で動かす (20分)</summary>
     <div class="setup-body">
       <p class="setup-intro">
-        このサイトは「visitor が自分で Strava API Application + Cloudflare Worker を立てて、
-        自分の値を入れて使う」方式です。共有サーバはありません、認可は visitor 自身の Strava App でだけ起こります。
-        手順は
-        <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/SETUP.md"
-           target="_blank" rel="noopener">SETUP.md</a>
-        を参照してください。
+        このページは共有サーバを持ちません。あなたの Strava アカウントと、
+        あなたの Cloudflare アカウントで動かします。下記 4 ステップ完了で、
+        年度ごとのフィットネスチャートが見えるようになります。
       </p>
+
+      <ol class="setup-steps">
+        <li>
+          <strong>Strava で API アプリを作る</strong> (約 5 分)<br>
+          <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener">strava.com/settings/api</a>
+          を開いて「Create &amp; Manage Your App」。Authorization Callback Domain には<strong>このページの host</strong>
+          (<code id="setup-host-hint">—</code>) を入れる。作成後の画面で <strong>Client ID</strong> と <strong>Client Secret</strong> を控える。
+        </li>
+        <li>
+          <strong>Cloudflare Worker をデプロイする</strong> (約 10 分)<br>
+          Cloudflare アカウントを作成 → ターミナルで:
+          <pre><code>npm install -g wrangler
+wrangler login
+git clone &lt;このリポ&gt;
+cd strava-pmc-viewer/worker
+wrangler secret put STRAVA_CLIENT_ID       # ← step1 の Client ID を貼る
+wrangler secret put STRAVA_CLIENT_SECRET   # ← step1 の Client Secret を貼る
+wrangler deploy</code></pre>
+          デプロイ完了画面に出る URL (例: <code>https://strava-pmc-relay.xxxx.workers.dev</code>) を控える。
+        </li>
+        <li>
+          <strong>下のフォームに 2 つの値を入れて「保存」</strong> (約 1 分)
+        </li>
+        <li>
+          <strong>「Strava と接続」を押す</strong> → 認可画面で許可 → 年度ボタンが現れる
+        </li>
+      </ol>
+
       <div class="setup-row">
-        <label for="setup-client-id">Strava Client ID</label>
+        <label for="setup-client-id">① Strava Client ID</label>
         <input id="setup-client-id" type="text" inputmode="numeric" autocomplete="off"
                placeholder="12345" spellcheck="false">
       </div>
       <div class="setup-row">
-        <label for="setup-worker-url">Cloudflare Worker URL</label>
+        <label for="setup-worker-url">② Cloudflare Worker URL</label>
         <input id="setup-worker-url" type="text" autocomplete="off"
                placeholder="https://strava-pmc-relay.xxxx.workers.dev" spellcheck="false">
       </div>

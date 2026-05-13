@@ -29,6 +29,11 @@ body {
 .rate-banner { background: #fff8e1; color: #6b5800; border: 1px solid #ffe082; border-radius: 6px; padding: 0.4rem 0.75rem; margin: 0 0 0.75rem; font-size: 0.78rem; line-height: 1.4; }
 .rate-banner strong { color: #b04400; }
 .rate-banner-detail { color: #8a7000; margin-left: 0.5rem; }
+.setup-steps { line-height: 1.7; padding-left: 1.2rem; }
+.setup-steps li { margin-bottom: 0.7rem; }
+.setup-steps pre { background: #f4f4f4; border: 1px solid var(--line); border-radius: 4px; padding: 0.5rem 0.75rem; overflow-x: auto; font-size: 0.78rem; }
+.setup-steps code { background: var(--line); padding: 0.05rem 0.25rem; border-radius: 3px; font-size: 0.85em; }
+.setup-steps pre code { background: transparent; padding: 0; }
 
 .btn {
   font-size: 0.85rem; padding: 0.3rem 0.7rem;

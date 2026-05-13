@@ -33,6 +33,8 @@ const setupStatus      = $("setup-status");
 const setupCurrent     = $("setup-current");
 const setupCurrentClient = $("setup-current-client");
 const setupCurrentWorker = $("setup-current-worker");
+const setupHostHint      = $("setup-host-hint");
+if (setupHostHint) setupHostHint.textContent = location.host || location.hostname || "—";
 
 const mCtl  = $("m-ctl"), mAtl = $("m-atl"), mTsb = $("m-tsb"), mRamp = $("m-ramp");
 const cardTsb = $("card-tsb");
