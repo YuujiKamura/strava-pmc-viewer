@@ -1,7 +1,11 @@
 # strava-pmc-viewer
 
-Strava の Fitness (CTL) / Freshness (TSB) / Fatigue (ATL) を、自由にズームしたり
-過去年度と比較したりして眺めるためのビューア。
+**Strava の Fitness & Freshness を、年度ごとに切り替えて見たい人向け**。
+
+Strava 公式 UI は単一の時間軸スライダーで全期間を流し見るだけで、「2025 年だけ」
+「2018 年だけ」のように年度を切替えて眺める / 比較する操作がしにくい。
+このリポは、年度ボタンを 1 個押すだけでその年の Fitness (CTL) / Fatigue (ATL) /
+Form (TSB) チャートを表示する SPA。
 
 ## これは何
 

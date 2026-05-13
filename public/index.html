@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Strava Fitness & Freshness Viewer</title>
+  <title>Strava Fitness & Freshness を年度別に見る</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="hdr">
-    <h1>フィットネス / フレッシュネス チャート</h1>
+    <h1>Strava Fitness &amp; Freshness を年度別に</h1>
     <div class="hdr-status">
       <span id="auth-status" class="auth-pill">未接続</span>
       <button id="setup-toggle" class="btn btn-icon" type="button" aria-controls="setup-panel" aria-expanded="false" title="設定">⚙</button>
@@ -124,10 +124,13 @@ wrangler deploy</code></pre>
   <!-- 未認証 landing: welcome ヒーロー -->
   <main class="shell" id="auth-shell" hidden>
     <section class="hero" data-state="unconfigured">
-      <h2 class="hero-title">あなたの走りを可視化します</h2>
+      <p class="hero-need">こんな人向け</p>
+      <h2 class="hero-title">Strava の Fitness &amp; Freshness を、<br>年度ごとに切り替えて見たい</h2>
       <p class="hero-sub">
-        Strava のアクティビティから Fitness (CTL) / Fatigue (ATL) / Form (TSB) を計算し、
-        年度ごとのトレーニング負荷をチャートで表示します。
+        Strava 公式 UI は単一の時間軸スライダーで全期間を流し見るだけ。
+        このツールは <strong>「2025 年だけ」「2018 年だけ」</strong>とワンクリックで年度を切替、
+        過去年との比較や、特定の年の Fitness (CTL) / Fatigue (ATL) / Form (TSB) を
+        じっくり眺めるための SPA です。
       </p>
       <div class="hero-cta-wrap">
         <button id="hero-start" class="btn btn-primary btn-lg" type="button">さっそく始める →</button>
