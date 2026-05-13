@@ -72,9 +72,13 @@
       </p>
       <p class="hint warn">
         ⚠ <strong>Strava API レート制限</strong> (visitor 1 人 1 アプリ単位):
-        <strong>100 リクエスト / 15 分</strong> ・ <strong>1,000 リクエスト / 日</strong>。
-        1 年取得 ≈ 3〜6 リクエスト、詳細値取得は 1 アクティビティ = 1 リクエスト。
-        年度ボタン連打や「最新に更新」連打は 15 分以内に上限に当たり 429 で 15 分凍結します。
+        <strong>100 req / 15 分</strong> ・ <strong>1,000 req / 日</strong>。
+        <br>
+        <strong>1 年取得 ≈ 1〜2 req</strong> (per_page=200、年 200 件超だと 2 req)。
+        過去 10 年取り直しても合計 10〜20 req で、制限の足元にも届かないので普段は安心。
+        <br>
+        ただし <strong>「詳細値を取得」は 1 req/件</strong> ── 年 150 件なら 150 req、
+        15 分制限のため 30 分弱凍結を経由する。普段は無くても十分 (時間 × sport 係数で推定)。
       </p>
     </div>
   </main>
@@ -88,8 +92,11 @@
     </div>
 
     <div class="rate-banner">
-      <strong>Strava API 制限</strong>: 100 リクエスト / 15 分 · 1,000 リクエスト / 日 (個人 app 単位)。
-      <span class="rate-banner-detail">1 年取得 ≈ 3〜6 req、詳細値取得 = 1 req/件。</span>
+      <strong>Strava API 制限</strong>: 100 req / 15 分 · 1,000 req / 日 (個人 app 単位)。
+      <span class="rate-banner-detail">
+        1 年取得 = <strong>通常 1〜2 req</strong> (per_page=200、年間 200 件超で 2)、
+        詳細値取得 = 1 req/件 (年 100〜300 件なら 100〜300 req、15 分制限のため 30〜45 分掛かる)。
+      </span>
     </div>
 
     <div class="toolbar">

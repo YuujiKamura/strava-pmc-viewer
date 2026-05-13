@@ -21,7 +21,7 @@ export async function fetchActivities({ token, after, before, onProgress }) {
   while (true) {
     const url = new URL(API + "/athlete/activities");
     url.searchParams.set("page", page);
-    url.searchParams.set("per_page", 50);
+    url.searchParams.set("per_page", 200);  // Strava API 上限、1 年 = 1〜2 calls で済む
     if (after  != null) url.searchParams.set("after",  Math.floor(after));
     if (before != null) url.searchParams.set("before", Math.floor(before));
 
@@ -36,7 +36,7 @@ export async function fetchActivities({ token, after, before, onProgress }) {
     const batch = await r.json();
     all.push(...batch);
     onProgress?.(`${all.length} 件取得済`);
-    if (batch.length < 50) break;
+    if (batch.length < 200) break;
     page++;
   }
   return all;
