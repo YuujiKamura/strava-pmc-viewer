@@ -44,6 +44,21 @@ const heroConnectBtn = $("hero-connect");
 const mCtl  = $("m-ctl"), mAtl = $("m-atl"), mTsb = $("m-tsb"), mRamp = $("m-ramp");
 const cardTsb = $("card-tsb");
 const conditionAdvice = $("condition-advice");
+const cardsAsOf = $("cards-asof");
+
+function updateCards(points, idx) {
+  if (!points.length) return;
+  const p = points[idx];
+  mCtl.textContent  = p.ctl.toFixed(1);
+  mAtl.textContent  = p.atl.toFixed(1);
+  mTsb.textContent  = p.tsb.toFixed(1);
+  cardTsb.classList.toggle("tsb-pos", p.tsb >= 0);
+  cardTsb.classList.toggle("tsb-neg", p.tsb < 0);
+  const ramp = idx >= 7 ? (p.ctl - points[idx - 7].ctl) : null;
+  mRamp.textContent = ramp != null ? ramp.toFixed(1) : "—";
+  if (cardsAsOf) cardsAsOf.textContent = `${p.date} 時点`;
+  setConditionAdvice(p.ctl, p.atl, p.tsb, ramp);
+}
 
 function setConditionAdvice(ctl, atl, tsb, ramp) {
   if (!conditionAdvice) return;
@@ -499,15 +514,16 @@ function render(year, activities) {
   const to   = `${year}-12-31`;
   const points = computePmc(activities, { from, to });
 
-  const today = points[points.length - 1];
-  mCtl.textContent  = today.ctl.toFixed(1);
-  mAtl.textContent  = today.atl.toFixed(1);
-  mTsb.textContent  = today.tsb.toFixed(1);
-  cardTsb.classList.toggle("tsb-pos", today.tsb >= 0);
-  cardTsb.classList.toggle("tsb-neg", today.tsb < 0);
-  const ramp = points.length > 7 ? (today.ctl - points[points.length - 8].ctl) : null;
-  mRamp.textContent = ramp != null ? ramp.toFixed(1) : "—";
-  setConditionAdvice(today.ctl, today.atl, today.tsb, ramp);
+  // サマリーの基準日:
+  //   - 当年表示: 今日 (date <= now の最新 point)
+  //   - 過去年: その年の 12-31
+  // 「未来側の 12-31」を取ると EMA が減衰して 0.1 になってしまうバグ修正。
+  const todayStr = new Date().toISOString().slice(0, 10);
+  let refIdx = points.length - 1;
+  for (let i = points.length - 1; i >= 0; i--) {
+    if (points[i].date <= todayStr) { refIdx = i; break; }
+  }
+  updateCards(points, refIdx);
 
   // activities by date for click-panel
   const byDate = new Map();
@@ -588,7 +604,9 @@ function drawChart(points, byDate) {
     dragStartX = null;
     const items = chart.getElementsAtEventForMode(e, "index", { intersect: false }, true);
     if (!items.length) return;
-    renderDay(items[0].index, points, byDate);
+    const idx = items[0].index;
+    renderDay(idx, points, byDate);
+    updateCards(points, idx);   // クリックでカードも同期、user 訂正「グラフとカードの連動を強制」
   });
 }
 

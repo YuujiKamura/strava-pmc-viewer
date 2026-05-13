@@ -421,6 +421,8 @@ body {
 .card .value { font-size: 1.8rem; font-weight: 700; line-height: 1.1; margin: 0.25rem 0; }
 .card.tsb-pos .value { color: var(--pos); }
 .card.tsb-neg .value { color: var(--neg); }
+.cards-asof { margin: 0 0 0.5rem; font-size: 0.78rem; color: var(--muted); }
+.cards-asof span { color: var(--accent); font-weight: 500; }
 .condition-advice {
   margin: 0 0 1rem; padding: 0.6rem 0.9rem;
   background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px;
