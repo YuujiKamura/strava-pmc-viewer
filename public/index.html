@@ -28,6 +28,13 @@
         <button id="hero-connect" class="btn btn-primary btn-lg" type="button" hidden>Strava と接続</button>
       </div>
       <p class="hero-assure">動作には visitor 自身の Strava App + Cloudflare Worker の構築が必要です。</p>
+      <p class="hero-trust">
+        全ソース <strong>MIT License</strong> で公開 ──
+        <a href="https://github.com/YuujiKamura/strava-pmc-viewer" target="_blank" rel="noopener">リポ全体を読む</a>
+        ／
+        <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js" target="_blank" rel="noopener">Proxy Worker (約 100 行)</a>。
+        導入前のコード査読を推奨。
+      </p>
     </section>
 
     <!-- データ経路図 (実データなし、構成だけ) -->
@@ -101,9 +108,10 @@
             <div class="roadmap-role">STEP 2</div>
             <div class="roadmap-title">Proxy Worker</div>
             <div class="roadmap-desc">
-              下のコマンドをターミナルで実行し、中継用 Worker をデプロイ
-              (最終行の <code>YOUR-USERNAME</code> は自分の GitHub アカウントに書き換え)。
-              完了時に表示される <code>xxxx.workers.dev</code> の URL を控えます。
+              Cloudflare アカウントの所持が前提。下のコマンドをターミナルで実行し、
+              自身の管理下に中継 Worker をデプロイします (最終行の <code>YOUR-USERNAME</code>
+              は自分の GitHub アカウントに書き換え)。完了時に表示される
+              <code>xxxx.workers.dev</code> の URL を控えます。
             </div>
             <div class="codeblock" data-lang="bash">
               <button class="codeblock-copy btn-sm" type="button" data-copy-target="code-wrangler">全コピー</button>

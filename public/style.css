@@ -103,6 +103,20 @@ body {
   font-size: 0.78rem;
   margin: 0.5rem 0 0;
 }
+.hero-trust {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin: 1.2rem auto 0;
+  padding: 0.8rem 1rem;
+  max-width: 580px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg-elev);
+  line-height: 1.7;
+}
+.hero-trust strong { color: var(--fg); font-weight: 600; }
+.hero-trust a { color: var(--fg); text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 2px; }
+.hero-trust a:hover { text-decoration-color: var(--accent); }
 /* ── Setup panel (collapsed by default) ─────────────── */
 .setup-panel { max-width: 1100px; margin: 0.5rem auto; padding: 0 1rem; }
 .setup-panel > summary {
