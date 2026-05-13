@@ -267,7 +267,8 @@ body {
 .setup-row-checkbox input { margin: 0; }
 .setup-row-hint { color: var(--muted-2); font-size: 0.72rem; }
 /* なぜ Worker か (fold せず最初に見える位置) */
-.why-worker { background: #fafafa; border-left: 4px solid var(--accent); border-radius: 0 6px 6px 0; padding: 1rem 1.25rem; margin: 0 0 1.5rem; }
+.hero-block { max-width: 640px; margin-left: auto; margin-right: auto; text-align: left; }
+.why-worker { background: #fafafa; border-left: 4px solid var(--accent); border-radius: 0 6px 6px 0; padding: 1rem 1.25rem; margin: 1.5rem auto; }
 .why-worker-title { margin: 0 0 0.6rem; font-size: 1rem; font-weight: 600; color: var(--fg); }
 .why-worker p { margin: 0.4rem 0; line-height: 1.7; color: var(--fg-soft); font-size: 0.88rem; }
 .why-worker strong { color: var(--fg); }

@@ -333,7 +333,12 @@ function wireSetupPanel() {
 
   if (setupToggle) {
     setupToggle.addEventListener("click", () => {
-      if (setupPanel.open) closeSetupPanel(); else openSetupPanel();
+      if (setupPanel.open) {
+        closeSetupPanel();
+      } else {
+        openSetupPanel();
+        requestAnimationFrame(() => setupPanel.scrollIntoView({ behavior: "smooth", block: "start" }));
+      }
     });
   }
   // <details> 自体の open 状態と aria-expanded を同期

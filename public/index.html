@@ -17,30 +17,62 @@
     </div>
   </header>
 
-  <details id="setup-panel" class="setup-panel" open>
-    <summary><span class="summary-text">セットアップ ガイド</span></summary>
-    <div class="setup-body">
+  <div id="demo-banner" class="demo-banner" hidden>
+    <strong>Demo mode</strong>: yuuji の 1785 件をローカル読込中、OAuth スキップ
+    <span id="demo-banner-detail"></span>
+  </div>
 
-      <!-- なぜ Worker か (常時表示、fold しない) -->
-      <section class="why-worker">
-        <h3 class="why-worker-title">なぜ「自分専用の中継器」が要るのか</h3>
-        <p>
-          Strava API を使うには <strong>Client Secret</strong> (秘密鍵) が必要です。
-          これを Web サービスの運営者サーバーに置く構成だと、運営者があなたの活動データに
-          アクセスできてしまいます。
-        </p>
-        <p>
-          このツールには運営サーバーがありません。代わりに、あなた自身の Cloudflare
-          アカウントに小さな中継プログラム (Worker) を設置していただきます。鍵はその
-          Worker 内にのみ存在し、データは
-          <strong>Strava ↔ あなたの Worker ↔ あなたのブラウザ</strong> の間だけで完結します。
-          開発者がデータに触れる経路は存在しません。
-        </p>
-        <p class="why-worker-tag">
-          API キーを他人に預けるのは抵抗があるが、詳細な分析はしたい人のための構成です。
-          セットアップに手間が要るのは、それと引き換えです。
-        </p>
-      </section>
+  <!-- 未認証 landing: hero + why-worker (上部)、setup-panel は下に隠す -->
+  <main class="shell" id="auth-shell" hidden>
+    <section class="hero" data-state="unconfigured">
+      <p class="hero-need">Strava の Fitness &amp; Freshness を年度別に</p>
+      <h2 class="hero-title">年度ごとに切り替えて見る、<br>Fitness / Fatigue / Form チャート</h2>
+      <p class="hero-sub">
+        Strava 公式 UI は時間軸スライダーで全期間を一度に表示します。
+        このツールは「2025 年だけ」「2018 年だけ」のように年度を切り替えてチャートを眺める SPA です。
+      </p>
+
+      <div class="hero-cta-wrap">
+        <button id="hero-start" class="btn btn-primary btn-lg" type="button">セットアップを始める</button>
+        <button id="hero-connect" class="btn btn-primary btn-lg" type="button" hidden>Strava と接続</button>
+      </div>
+      <p class="hero-assure">取得したアクティビティはブラウザの localStorage に保存。サーバー送信はありません。</p>
+    </section>
+
+    <!-- 「なぜ」セクション: hero 直下、表に出す。手順 (setup-panel) は下に折り畳む -->
+    <section class="why-worker hero-block">
+      <h3 class="why-worker-title">なぜ「自分専用の中継器」が要るのか</h3>
+      <p>
+        Strava API を使うには <strong>Client Secret</strong> (秘密鍵) が必要です。
+        これを Web サービスの運営者サーバーに置く構成だと、運営者があなたの活動データに
+        アクセスできてしまいます。
+      </p>
+      <p>
+        このツールには運営サーバーがありません。代わりに、あなた自身の Cloudflare
+        アカウントに小さな中継プログラム (Worker) を設置していただきます。鍵はその
+        Worker 内にのみ存在し、データは
+        <strong>Strava ↔ あなたの Worker ↔ あなたのブラウザ</strong> の間だけで完結します。
+        開発者がデータに触れる経路は存在しません。
+      </p>
+      <p class="why-worker-tag">
+        API キーを他人に預けるのは抵抗があるが、詳細な分析はしたい人のための構成です。
+        セットアップに手間が要るのは、それと引き換えです。
+      </p>
+    </section>
+
+    <section class="hero-terms hero-block">
+      <p class="hero-terms-title">このツールを使うための条件</p>
+      <ul>
+        <li><strong>サーバーを介しません</strong> ── データはあなたのブラウザと Strava の間だけでやり取りされます。</li>
+        <li><strong>自分専用の門番 (Worker) を置く</strong> ── セキュリティ上、あなた自身で Cloudflare 上に通信の中継役を立てる必要があります。</li>
+        <li><strong>設定は一度だけ</strong> ── 初回は面倒です。ただし一度終われば、あなたの秘密鍵を誰にも預けずに済みます。</li>
+      </ul>
+    </section>
+  </main>
+
+  <details id="setup-panel" class="setup-panel">
+    <summary><span class="summary-text">セットアップ ガイド (手順を開く)</span></summary>
+    <div class="setup-body">
 
       <!-- 3 ステップ ロードマップ: 役割と「得られる安心」を併記 -->
       <ol class="roadmap" aria-label="セットアップの流れ">
@@ -131,37 +163,6 @@ wrangler deploy</code></pre>
     </div>
   </details>
 
-  <div id="demo-banner" class="demo-banner" hidden>
-    <strong>Demo mode</strong>: yuuji の 1785 件をローカル読込中、OAuth スキップ
-    <span id="demo-banner-detail"></span>
-  </div>
-
-  <!-- 未認証 landing: welcome ヒーロー -->
-  <main class="shell" id="auth-shell" hidden>
-    <section class="hero" data-state="unconfigured">
-      <p class="hero-need">Strava の Fitness &amp; Freshness を年度別に</p>
-      <h2 class="hero-title">年度ごとに切り替えて見る、<br>Fitness / Fatigue / Form チャート</h2>
-      <p class="hero-sub">
-        Strava 公式 UI は時間軸スライダーで全期間を一度に表示します。
-        このツールは「2025 年だけ」「2018 年だけ」のように年度を切り替えてチャートを眺める SPA です。
-      </p>
-
-      <div class="hero-terms">
-        <p class="hero-terms-title">このツールを使うための条件</p>
-        <ul>
-          <li><strong>サーバーを介しません</strong> ── データはあなたのブラウザと Strava の間だけでやり取りされます。</li>
-          <li><strong>自分専用の門番 (Worker) を置く</strong> ── セキュリティ上、あなた自身で Cloudflare 上に通信の中継役を立てる必要があります。</li>
-          <li><strong>設定は一度だけ</strong> ── 初回は面倒です。ただし一度終われば、あなたの秘密鍵を誰にも預けずに済みます。</li>
-        </ul>
-      </div>
-
-      <div class="hero-cta-wrap">
-        <button id="hero-start" class="btn btn-primary btn-lg" type="button">セットアップを始める</button>
-        <button id="hero-connect" class="btn btn-primary btn-lg" type="button" hidden>Strava と接続</button>
-      </div>
-      <p class="hero-assure">取得したアクティビティはブラウザの localStorage に保存。サーバー送信はありません。</p>
-    </section>
-  </main>
 
   <main class="shell" id="dash-shell" hidden>
     <div class="cards">
