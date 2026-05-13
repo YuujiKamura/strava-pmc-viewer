@@ -22,11 +22,20 @@
   </div>
 
   <main class="shell" id="auth-shell" hidden>
-    <p class="intro">
-      Strava と接続して年度を選ぶと、その年のアクティビティから
-      <strong>Fitness (CTL) / Fatigue (ATL) / Form (TSB)</strong> を計算して描画します。
-      データはあなたのブラウザに留まり、サーバに保存されません。
-    </p>
+    <div class="landing">
+      <h2>自分の Strava データで Fitness / Freshness を可視化</h2>
+      <p>
+        ヘッダの <strong>「Strava と接続」</strong>を押すと Strava の認証ページに飛びます。
+        許可すると戻ってきて、<strong>年度ボタン</strong>から好きな年を選択 →
+        その年のアクティビティだけ取得して<strong>Fitness (CTL) / Fatigue (ATL) / Form (TSB)</strong>
+        を計算・描画します。
+      </p>
+      <p class="hint">
+        ✓ データはあなたのブラウザに <code>localStorage</code> でキャッシュされ、サーバには送られません。<br>
+        ✓ 一度取った年度は次回から即表示 (キャッシュから)、再取得は「最新に更新」ボタンで。<br>
+        ✓ Strava ToS §5.1 + §2.10 範囲内: 本人 OAuth + 本人 UI 表示のみ、第三者開示なし。
+      </p>
+    </div>
   </main>
 
   <main class="shell" id="dash-shell" hidden>
@@ -41,6 +50,10 @@
       <div class="windows" id="year-buttons"></div>
       <div class="windows-actions">
         <span class="status" id="fetch-status"></span>
+        <button id="refresh-btn" class="btn" hidden
+                title="現在表示中の年を Strava から再取得してキャッシュを上書き">
+          最新に更新
+        </button>
         <button id="enrich-btn" class="btn" hidden
                 title="表示中の年について Suffer Score / Power を 1 件ずつ追加取得 (時間かかる)">
           詳細値を取得 (Strava UI に近い数値)

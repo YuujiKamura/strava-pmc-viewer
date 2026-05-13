@@ -1,6 +1,7 @@
 import * as auth from "./auth.js";
 import { fetchActivities, fetchActivityDetail } from "./strava.js";
 import { computePmc } from "./pmc.js";
+import * as cache from "./cache.js";
 
 // ── DOM refs ──────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -12,6 +13,7 @@ const dashShell   = $("dash-shell");
 const yearButtons = $("year-buttons");
 const fetchStatus = $("fetch-status");
 const enrichBtn   = $("enrich-btn");
+const refreshBtn  = $("refresh-btn");
 const zoomStatus  = $("zoom-status");
 const resetZoom   = $("reset-zoom");
 const dayTitle    = $("day-title");
@@ -137,48 +139,64 @@ connectBtn.addEventListener("click", () => {
   location.href = auth.authorizeUrl();
 });
 logoutBtn.addEventListener("click", () => {
-  auth.clearToken();
-  token = null;
-  activitiesCache.clear();
-  onDisconnected();
+  const athId = token?.athlete?.id;
+  if (confirm("Strava との接続を切断し、ローカルキャッシュも消しますか?")) {
+    cache.clearAllForAthlete(athId);
+    auth.clearToken();
+    token = null;
+    activitiesCache.clear();
+    onDisconnected();
+  }
 });
+
+if (refreshBtn) {
+  refreshBtn.addEventListener("click", () => {
+    if (currentYear != null) selectYear(currentYear, { force: true });
+  });
+}
 
 // ── year selection ──────────────────────────────────────────────────────
 function renderYearButtons() {
   while (yearButtons.firstChild) yearButtons.removeChild(yearButtons.firstChild);
   let years;
   if (DEMO_MODE && demoYearsAvailable && demoYearsAvailable.length) {
-    // demo mode: data 範囲の全年度を出す
     years = demoYearsAvailable.slice();
   } else {
-    // 通常: 過去 8 年分 (Strava で取得可能な範囲)
     const thisYear = new Date().getFullYear();
     years = [];
     for (let y = thisYear; y >= thisYear - 7; y--) years.push(y);
   }
+  const cachedSet = new Set(DEMO_MODE ? years : cache.cachedYears(token?.athlete?.id));
   for (const y of years) {
     const btn = document.createElement("button");
-    btn.textContent = y;
+    const hasCache = cachedSet.has(y);
+    btn.textContent = hasCache ? `${y} ●` : `${y}`;
     btn.dataset.year = y;
+    btn.title = hasCache ? "取得済み (キャッシュから即表示)" : "未取得 (押すと Strava から取得)";
     btn.addEventListener("click", () => selectYear(y));
     yearButtons.appendChild(btn);
   }
 }
 
-async function selectYear(year) {
+async function selectYear(year, { force = false } = {}) {
   currentYear = year;
   for (const b of yearButtons.querySelectorAll("button")) {
     b.classList.toggle("active", Number(b.dataset.year) === year);
     b.disabled = true;
   }
-  // demo mode は Strava API を叩かないので enrich は不可
   enrichBtn.hidden = DEMO_MODE ? true : false;
-  fetchStatus.textContent = DEMO_MODE ? "読込中…" : "取得中…";
+  refreshBtn.hidden = DEMO_MODE;
+  fetchStatus.textContent = DEMO_MODE ? "読込中…" : (force ? "強制取得中…" : "確認中…");
 
   try {
-    const acts = DEMO_MODE ? await loadYearDemo(year) : await loadYear(year);
-    fetchStatus.textContent = `${acts.length} 件 (${year}年)${DEMO_MODE ? " · demo" : ""}`;
+    const acts = DEMO_MODE ? await loadYearDemo(year) : await loadYear(year, { force });
+    // status は loadYear がキャッシュ vs API でメッセージ調整済 (force 時は上書き不要)
     render(year, acts);
+    renderYearButtons();
+    // active state を再付与 (renderYearButtons で消えるので)
+    for (const b of yearButtons.querySelectorAll("button")) {
+      b.classList.toggle("active", Number(b.dataset.year) === year);
+    }
   } catch (e) {
     fetchStatus.textContent = "エラー";
     showError(e.message);
@@ -202,12 +220,25 @@ async function loadYearDemo(year) {
   return acts;
 }
 
-async function loadYear(year) {
-  if (activitiesCache.has(year)) return activitiesCache.get(year);
+async function loadYear(year, { force = false } = {}) {
+  // メモリキャッシュ
+  if (!force && activitiesCache.has(year)) return activitiesCache.get(year);
 
-  // PMC の warmup 用に 60 日前から取得 (CTL の初期値を埋める)
-  const start = new Date(Date.UTC(year - 1, 10, 1));  // 11月1日前年
+  // localStorage キャッシュ
+  const athId = token?.athlete?.id;
+  if (!force) {
+    const cached = cache.loadYearCache(athId, year);
+    if (cached) {
+      activitiesCache.set(year, cached.activities);
+      fetchStatus.textContent = `${cached.activities.length} 件 (${year}年, キャッシュ ${cache.fetchedAtLabel(cached.fetchedAt)})`;
+      return cached.activities;
+    }
+  }
+
+  // PMC の warmup 用に前年 11 月から取得 (CTL の初期値を埋める)
+  const start = new Date(Date.UTC(year - 1, 10, 1));
   const end   = new Date(Date.UTC(year, 11, 31, 23, 59, 59));
+  fetchStatus.textContent = `Strava から取得中…`;
   const acts = await fetchActivities({
     token,
     after:  Math.floor(start.getTime() / 1000),
@@ -215,6 +246,7 @@ async function loadYear(year) {
     onProgress: msg => fetchStatus.textContent = msg,
   });
   activitiesCache.set(year, acts);
+  cache.saveYearCache(athId, year, acts);
   // token は refresh で更新されてる可能性、最新を取り直す
   token = auth.loadToken() || token;
   return acts;

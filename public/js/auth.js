@@ -14,17 +14,18 @@ export const CONFIG = {
 };
 
 export function loadToken() {
-  try { return JSON.parse(sessionStorage.getItem(STORAGE_KEY) || "null"); }
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); }
   catch { return null; }
 }
 
 export function saveToken(tok) {
-  // sessionStorage に置く: tab を閉じれば消える、データ持ち越し最小化。
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(tok));
+  // localStorage に置く: 再訪時に OAuth スキップ。本人デバイス内のみ。
+  // (sessionStorage は tab を閉じれば消えるが、再訪のたびに OAuth しなおしの UX が辛い)
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tok));
 }
 
 export function clearToken() {
-  sessionStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(STORAGE_KEY);
 }
 
 export function authorizeUrl() {
