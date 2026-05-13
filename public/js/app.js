@@ -604,7 +604,8 @@ function render(year, activities) {
   }
 
   drawChart(points, byDate);
-  renderDay(points.length - 1, points, byDate);
+  // 初期選択日も「現在時刻」(refIdx) ── 12/31 を中心に出す bug 修正
+  renderDay(refIdx, points, byDate);
 }
 
 // ── chart ──────────────────────────────────────────────────────────────
