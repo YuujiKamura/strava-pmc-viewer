@@ -7,12 +7,15 @@
 //   ATL = 7-day  EMA of TSS (Fatigue)
 //   TSB = previous day CTL - previous day ATL (Form)
 //
-// activity 1 件あたりの TSS 推定優先順位:
-//   1. suffer_score (HR-derived Relative Effort、Strava 公式値)
-//   2. weighted_average_watts による power-based TSS
+// activity 1 件あたりの TSS 推定優先順位 (Strava 公式の Fitness 算出に揃える):
+//   1. weighted_average_watts による power-based TSS = NP/FTP² × duration × 100
+//      ── Strava の "Training Load" と等価、公式 Fitness の第一情報源
+//   2. suffer_score (HR-derived Relative Effort)
+//      ── Strava 公式は本人の (RE, TL) 線形回帰 (10 ride 以上) で TL 換算するが、
+//      本ツールは回帰未実装、RE をそのまま TSS 近似として採用 (= 公式より粗い)
 //   3. moving_time × sport 別係数
 //   4. elapsed_time × sport 別係数
-// 上位データが無い時だけ次に落ちる。
+// 上位データが無い時だけ次に落ちる。power → HR → 時間 × 係数 と精度が落ちる。
 
 export const CTL_DAYS = 42;
 export const ATL_DAYS = 7;
@@ -45,8 +48,7 @@ export const DEFAULT_FTP = 200;
  * @returns {number} estimated TSS
  */
 export function tssFor(a, ftp = DEFAULT_FTP) {
-  if (a.suffer_score != null && a.suffer_score > 0) return Number(a.suffer_score);
-
+  // (1) power-based TSS = Strava 公式の Training Load 算出と等価、最優先
   const np = a.weighted_average_watts;
   const moving = a.moving_time;
   if (np && np > 0 && moving && moving > 0) {
@@ -54,6 +56,10 @@ export function tssFor(a, ftp = DEFAULT_FTP) {
     return (moving / 3600) * intensityFactor * intensityFactor * 100;
   }
 
+  // (2) suffer_score (Relative Effort) を TSS 近似として採用 (公式は本人回帰)
+  if (a.suffer_score != null && a.suffer_score > 0) return Number(a.suffer_score);
+
+  // (3)(4) sport 別係数 fallback (Detailed Activity 未取得時の粗推定)
   const seconds = (moving && moving > 0) ? moving : (a.elapsed_time > 0 ? a.elapsed_time : 0);
   if (seconds <= 0) return 0;
   const sportKey = a.sport_type || a.type || "";

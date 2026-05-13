@@ -5,9 +5,19 @@ import {
   decayForward, hoursUntilFresh, lastActivityEndMs,
 } from "../public/js/pmc.js";
 
-test("tssFor uses suffer_score when present", () => {
+test("tssFor uses suffer_score when present (and no power data)", () => {
+  // power なし、suffer_score (Relative Effort) で fallback
   const a = { sport_type: "Ride", elapsed_time: 3600, moving_time: 3600, suffer_score: 73 };
   assert.equal(tssFor(a), 73);
+});
+
+test("tssFor prefers power-based TSS over suffer_score (= Strava 公式と同じ優先順位)", () => {
+  // NP=200 (= FTP) → TSS=100、suffer_score=200 でも power 優先で 100
+  // Strava 公式 Fitness は Training Load (power-based) を最優先、Relative Effort は
+  // 二次。本ツールも 2026-05 から同じ優先順位に揃えた
+  const a = { sport_type: "Ride", moving_time: 3600,
+              weighted_average_watts: 200, suffer_score: 200 };
+  assert.equal(Math.round(tssFor(a)), 100);
 });
 
 test("tssFor uses power-based TSS when NP available", () => {
