@@ -629,12 +629,31 @@ async function loadYear(year, { force = false } = {}) {
     onProgress: msg => fetchStatus.textContent = msg,
   });
   // 診断: 取れた件数と「最新 activity の日付」を fetchStatus に出す。
-  // force 更新したのに今日の分が出ない時、Strava 側の反映遅延か本ツール側 bug かを切り分け可能に。
+  // 「今日のライドが出ない」は Strava 公式の仕様 (新規 activity が API に
+  // propagate するまで数分〜数十分の lag がある、community で長年の既知問題)。
+  // 公式推奨は Webhook だが本ツールは静的 SPA で常時 endpoint を持てない構造、
+  // polling では物理的に解消不可。ユーザーに「待て」を明示する診断にする。
   const latest = acts.reduce((max, a) => {
     const d = (a.start_date_local || a.start_date || "").slice(0, 10);
     return d > max ? d : max;
   }, "");
-  fetchStatus.textContent = `${acts.length} 件取得 (最新 ${latest || "—"}, ${year}年範囲)`;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isCurrentYearFetch = (year === new Date().getFullYear());
+  let note = "";
+  if (force && isCurrentYearFetch && latest && latest < todayStr) {
+    // 「最新が今日より前」= 今日の activity が API に出てない、原因 2 種:
+    //   (a) Strava 側の処理ラグ (新規 activity が /athlete/activities に propagate
+    //       するまで数分〜数十分、公式仕様)
+    //   (b) 今日の activity が private (Only You / Followers Only)
+    //       現 scope=activity:read だと private は API レスポンス自体に含まれず
+    //       永遠に出ない。scope=activity:read_all に切替えれば取れる。
+    const cfg = config.getConfig();
+    const isReadAll = !!(cfg && cfg.scopeReadAll);
+    note = isReadAll
+      ? ` ── 今日 (${todayStr}) の分は未反映、Strava 側の処理待ちの可能性 (数分〜数十分)`
+      : ` ── 今日 (${todayStr}) の分が無い。考えられる原因: ①Strava 処理待ち (数分〜数十分)、②今日の activity が private (現 scope=public 専用、setup で「private も含める」をオンにすると取得可)`;
+  }
+  fetchStatus.textContent = `${acts.length} 件取得 (最新 ${latest || "—"}, ${year}年範囲)${note}`;
   activitiesCache.set(year, acts);
   cache.saveYearCache(athId, year, acts);
   // token は refresh で更新されてる可能性、最新を取り直す
