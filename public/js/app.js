@@ -911,12 +911,19 @@ async function runEnrich(year, acts, { background = false } = {}) {
   }
 }
 
-/** 残 API 数フラグメント。Strava snapshot (Worker 経由で取得した公式値) があれば
- *  それベース、無ければ self-count。source を括弧で明示。 */
+/** 残 API 数フラグメント。本ツールは全 GET なので Read (読み取り) 制限が支配的。
+ *  公式の Read 値があれば「読み取り N/M」を主表示、Overall (総合) を括弧で添える。
+ *  Strava snapshot が取れない時は self-count を読み取り扱いで表示。 */
 function apiRemainText() {
   const r = getRateBudget();
-  const tag = r.source === "strava" ? "" : " (本ツールでのカウント)";
-  return `残 API ${r.fifteenRemaining}/15分・${r.dailyRemaining}/日${tag}`;
+  const read = r.read;
+  if (!read) return "";
+  const main = `読み取り 残 ${read.fifteenRemaining}/15分・${read.dailyRemaining}/日`;
+  const overall = r.overall
+    ? ` (総合 ${r.overall.fifteenRemaining}/15分・${r.overall.dailyRemaining}/日)`
+    : "";
+  const tag = r.source === "strava" ? "" : " ※本ツールでのカウント";
+  return `${main}${overall}${tag}`;
 }
 
 /** enrich ボタンの状態を現在年の未取得件数に合わせて更新 (押す前に見えるラベル) */

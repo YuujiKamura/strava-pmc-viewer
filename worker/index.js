@@ -112,22 +112,35 @@ export default {
       if (!access_token) return jsonResponse({ error: "missing_access_token" }, 400, cors);
 
       // /athlete を 1 回叩く (軽量 endpoint、現 user 情報を返すだけ)。本来の目的は
-      // Strava response の X-RateLimit-Limit / X-RateLimit-Usage 抽出のみ。
+      // Strava response の rate limit headers 抽出。Strava は 2 種類返す:
+      //   X-RateLimit-*     : Overall (全 request、default 200/15min, 2000/日)
+      //   X-ReadRateLimit-* : Read (GET 系のみ、default 100/15min, 1000/日)
+      // 本ツールは全 GET なので Read が支配的。両方を返して UI 側で出し分ける。
       const r = await fetch("https://www.strava.com/api/v3/athlete", {
         headers: { Authorization: `Bearer ${access_token}` },
       });
-      const limitHeader = r.headers.get("X-RateLimit-Limit") || "";
-      const usageHeader = r.headers.get("X-RateLimit-Usage") || "";
-      const [lim15, limDay] = limitHeader.split(",").map(s => parseInt(s, 10));
-      const [use15, useDay] = usageHeader.split(",").map(s => parseInt(s, 10));
-      if (!Number.isFinite(lim15) || !Number.isFinite(use15)) {
+      const parsePair = (header) => {
+        if (!header) return null;
+        const [a, b] = header.split(",").map(s => parseInt(s, 10));
+        if (!Number.isFinite(a)) return null;
+        return { fifteen: a, daily: Number.isFinite(b) ? b : 0 };
+      };
+      const overallLim = parsePair(r.headers.get("X-RateLimit-Limit"));
+      const overallUse = parsePair(r.headers.get("X-RateLimit-Usage"));
+      const readLim    = parsePair(r.headers.get("X-ReadRateLimit-Limit"));
+      const readUse    = parsePair(r.headers.get("X-ReadRateLimit-Usage"));
+      if (!overallLim || !overallUse) {
         return jsonResponse({ error: "rate_headers_missing", status: r.status }, 502, cors);
       }
+      const pack = (lim, use) => ({
+        fifteenUsed: use.fifteen, fifteenLimit: lim.fifteen,
+        dailyUsed:   use.daily,   dailyLimit:   lim.daily,
+        fifteenRemaining: Math.max(0, lim.fifteen - use.fifteen),
+        dailyRemaining:   Math.max(0, lim.daily   - use.daily),
+      });
       return jsonResponse({
-        fifteenUsed: use15, fifteenLimit: lim15,
-        dailyUsed:   useDay || 0, dailyLimit: limDay || 0,
-        fifteenRemaining: Math.max(0, lim15 - use15),
-        dailyRemaining:   Math.max(0, (limDay || 0) - (useDay || 0)),
+        overall: pack(overallLim, overallUse),
+        read:    (readLim && readUse) ? pack(readLim, readUse) : null,
         fetchedAt: Date.now(),
       }, 200, cors);
     }

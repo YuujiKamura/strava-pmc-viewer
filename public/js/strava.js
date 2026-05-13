@@ -46,7 +46,8 @@ function logApiCall() {
 }
 
 // Worker /rate-status で Strava から取った最新 snapshot (本ツール外で叩いた分も
-// 含む正確な値)。null の間は self-count に fallback。
+// 含む正確な値)。{ overall: {...}, read: {...} | null, fetchedAt } 形式。
+// null の間は self-count に fallback。
 let stravaSnapshot = null;
 let stravaSnapshotAt = 0;
 
@@ -63,7 +64,7 @@ export async function refreshRateStatus(token) {
     });
     if (!r.ok) return null;
     const data = await r.json();
-    if (data && Number.isFinite(data.fifteenLimit)) {
+    if (data && data.overall && Number.isFinite(data.overall.fifteenLimit)) {
       stravaSnapshot = data;
       stravaSnapshotAt = Date.now();
       return data;
@@ -72,8 +73,10 @@ export async function refreshRateStatus(token) {
   return null;
 }
 
-/** 残 API 数を返す。Strava snapshot があればそれを基準に「snapshot 後の本ツール
- *  call 数」を引いて返す、無ければ self-count のみ。 */
+/** 残 API 数を返す。Strava snapshot があれば overall / read を両方返し、
+ *  読み取り (Read) が支配的なので UI 側はそれを主表示にする。
+ *  snapshot 後の本ツール call は両方の bucket から減算 (全部 GET の前提)。
+ *  snapshot 無ければ self-count を read bucket 相当 (100/1000) で返す。 */
 export function getRateBudget() {
   const now = Date.now();
   const win15 = now - 900000;
@@ -84,7 +87,7 @@ export function getRateBudget() {
   const localCDay = apiCallLog.length;
 
   if (stravaSnapshot) {
-    // snapshot 後に本ツールが追加で叩いた分を加算 (snapshot 時刻以降の log だけ count)
+    // snapshot 後の本ツール追加 call (全 GET 前提なので overall/read 両方から引く)
     let extra15 = 0, extraDay = 0;
     for (let i = apiCallLog.length - 1; i >= 0; i--) {
       if (apiCallLog[i] >= stravaSnapshotAt) {
@@ -92,28 +95,31 @@ export function getRateBudget() {
         extraDay++;
       } else break;
     }
-    const use15 = stravaSnapshot.fifteenUsed + extra15;
-    const useDay = stravaSnapshot.dailyUsed + extraDay;
-    const lim15 = stravaSnapshot.fifteenLimit || STRAVA_LIMIT_15MIN;
-    const limDay = stravaSnapshot.dailyLimit || STRAVA_LIMIT_DAY;
+    const adjust = (bucket) => {
+      if (!bucket) return null;
+      const u15 = bucket.fifteenUsed + extra15;
+      const uDay = bucket.dailyUsed + extraDay;
+      return {
+        fifteenUsed: u15, fifteenLimit: bucket.fifteenLimit,
+        dailyUsed: uDay, dailyLimit: bucket.dailyLimit,
+        fifteenRemaining: Math.max(0, bucket.fifteenLimit - u15),
+        dailyRemaining:   Math.max(0, bucket.dailyLimit - uDay),
+      };
+    };
     return {
-      fifteenUsed: use15, fifteenLimit: lim15,
-      fifteenRemaining: Math.max(0, lim15 - use15),
-      dailyUsed: useDay, dailyLimit: limDay,
-      dailyRemaining: Math.max(0, limDay - useDay),
+      overall: adjust(stravaSnapshot.overall),
+      read:    adjust(stravaSnapshot.read),
       source: "strava",
     };
   }
-  // fallback: self-count のみ
-  return {
-    fifteenUsed: localC15,
-    fifteenLimit: STRAVA_LIMIT_15MIN,
+  // fallback: self-count を Read bucket 相当として返す (本ツールは全 GET)
+  const self = {
+    fifteenUsed: localC15, fifteenLimit: STRAVA_LIMIT_15MIN,
     fifteenRemaining: Math.max(0, STRAVA_LIMIT_15MIN - localC15),
-    dailyUsed: localCDay,
-    dailyLimit: STRAVA_LIMIT_DAY,
+    dailyUsed: localCDay, dailyLimit: STRAVA_LIMIT_DAY,
     dailyRemaining: Math.max(0, STRAVA_LIMIT_DAY - localCDay),
-    source: "self",
   };
+  return { overall: null, read: self, source: "self" };
 }
 
 async function authHeader(token) {
