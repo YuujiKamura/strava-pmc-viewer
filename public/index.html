@@ -22,16 +22,12 @@
   <main class="shell" id="auth-shell" hidden>
     <section class="hero hero-minimal" data-state="unconfigured">
       <h2 class="hero-title">Strava Annual Fitness &amp; Freshness</h2>
-      <p class="hero-tag">
-        Strava API を利用した年度別のコンディション可視化ツール。セルフホストを
-        前提に、外部サーバーを介さずユーザー自身の Cloudflare Worker を経由して
-        通信する構成。
-      </p>
+      <p class="hero-tag">年度別のコンディション推移を可視化します。</p>
       <div class="hero-cta-wrap">
         <button id="hero-start" class="btn btn-primary btn-lg" type="button">Setup Guide</button>
         <button id="hero-connect" class="btn btn-primary btn-lg" type="button" hidden>Strava と接続</button>
       </div>
-      <p class="hero-assure">環境構築の工数が発生します (Strava App + Cloudflare Worker + GitHub Pages の 3 点を visitor 自身で用意)。</p>
+      <p class="hero-assure">動作には visitor 自身の Strava App + Cloudflare Worker の構築が必要です。</p>
     </section>
 
     <!-- データ経路図 (実データなし、構成だけ) -->
@@ -58,21 +54,29 @@
     <div class="setup-body">
 
       <p class="setup-lead">
-        <strong>Zero-Knowledge Architecture</strong> ── 走行データはブラウザ上で解析・
-        可視化するセルフホスト型の設計。Client Secret も Activity データも、
-        「Strava ↔ あなたの Cloudflare Worker ↔ あなたのブラウザ」だけで完結し、
-        外部サーバーへ送信される経路は構造上存在しません。
+        走行データや認証情報は、あなたのブラウザと、あなた自身が用意する中継 (Cloudflare
+        Worker) の間だけでやり取りされます。開発者を含め、第三者があなたのデータに触れる
+        経路は構造上ありません。
       </p>
       <details class="setup-why">
-        <summary>Technical Context — なぜ Worker を挟むのか</summary>
-        <p>
-          Strava OAuth は <code>Client Secret</code> で <code>code → access_token</code> を交換する仕様。
-          Client Secret はブラウザ JS に置けない (= 公開 = 漏洩) ため、token 交換だけを行う薄い Worker
-          を間に挟む構成。Worker は visitor 自身の Cloudflare 上で動き、Secret も走行データも
-          外部サーバーを通りません。コードは
-          <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js"
-             target="_blank" rel="noopener">worker/index.js</a> (約 100 行) で公開。
-        </p>
+        <summary>よくある質問</summary>
+        <dl class="setup-faq">
+          <dt>なぜ自分の Worker が必要?</dt>
+          <dd>Strava からデータを取るには Client Secret が必要ですが、これをブラウザに
+            置くと公開 = 漏洩になります。自分の Cloudflare 上に薄い中継を 1 つ立てて、
+            Secret を visitor 側に閉じ込める設計です。
+          </dd>
+          <dt>Cloudflare が死んだら?</dt>
+          <dd>ツールは動かなくなりますが、データはどこにも漏れません。中継 Worker も
+            Secret も visitor の管理下にあり、開発者や第三者のサーバには一切置かれていない
+            ためです。
+          </dd>
+          <dt>コードを確認したい</dt>
+          <dd>中継 Worker の中身は <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js"
+            target="_blank" rel="noopener">GitHub で公開</a>。やっているのは Strava の
+            <code>/oauth/token</code> 中継だけで、データ保存ロジックは入っていません。
+          </dd>
+        </dl>
       </details>
       <ol class="roadmap" aria-label="セットアップの流れ">
         <li class="roadmap-step" data-step="1">
@@ -112,10 +116,8 @@ wrangler secret put STRAVA_CLIENT_SECRET
 wrangler deploy --var ALLOWED_ORIGIN:"https://YOUR-USERNAME.github.io"</code></pre>
             </div>
             <p class="code-disclosure">
-              この Worker は通信の中継のみ ── Strava の <code>/oauth/token</code> へ
-              code → token を交換するだけで、データ保存ロジックは入っていません。コード全文は
-              <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js"
-                 target="_blank" rel="noopener">GitHub で公開</a> (約 100 行)。
+              中身は <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js"
+              target="_blank" rel="noopener">GitHub で公開</a>。
             </p>
           </div>
         </li>
@@ -151,14 +153,10 @@ wrangler deploy --var ALLOWED_ORIGIN:"https://YOUR-USERNAME.github.io"</code></p
           </label>
           <span class="setup-row-hint">自分のトレーニング分析を正確にするため、private rides も含めて全件取るのが既定。チェックを外すと公開分のみに絞れます。</span>
         </div>
-        <div class="setup-data-status" aria-label="データ保存に関する注釈">
-          <span class="setup-data-status-badge">Data Status: Local Only</span>
-          <span class="setup-data-status-note">取得データはブラウザの localStorage にのみ保存されます。外部サーバーへの送信や他ユーザーとのデータ共有は構造上不可能です。</span>
-        </div>
-        <div class="setup-data-status setup-data-status-compliance">
-          <span class="setup-data-status-badge setup-data-status-badge-compliance">Compliance: Strava ToS</span>
-          <span class="setup-data-status-note">Strava API Agreement §5.1 (本人 OAuth + 本人 UI 表示) / §2.10 (他人データ非取扱) / §2.14 (非再配布) / §2.15 (非 sublicense) の範囲で動作。</span>
-        </div>
+        <p class="setup-data-status-note">
+          取得データはブラウザの localStorage にのみ保存。外部送信や他ユーザーとのデータ共有は
+          構造上ありません。Strava API 利用規約 (§5.1 / §2.10 / §2.14 / §2.15) の範囲で動作。
+        </p>
         <div class="setup-actions">
           <button id="setup-save" class="btn btn-primary" type="button">保存</button>
           <button id="setup-clear" class="btn btn-ghost" type="button"

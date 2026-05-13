@@ -519,34 +519,28 @@ body {
   letter-spacing: 0.02em;
 }
 
-/* ── Data Status: Local Only バッジ ──────────────── */
-.setup-data-status {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  margin: 0.75rem 0 0;
-  padding: 0.6rem 0.85rem;
-  background: var(--bg-elev);
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--pos);
-  border-radius: 4px;
-}
-.setup-data-status-badge {
-  flex: 0 0 auto;
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--pos);
-  background: #eef7f0;
-  border: 1px solid #cfe5d4;
-  padding: 0.15rem 0.55rem;
-  border-radius: 4px;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
+/* ── データ保存に関する注釈 (プレーンテキスト) ───── */
 .setup-data-status-note {
+  margin: 0.8rem 0 0;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--line);
+  font-size: 0.76rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* ── setup-why の FAQ <dl> ───────────────────────── */
+.setup-faq { margin: 0.5rem 0 0; padding: 0; }
+.setup-faq dt {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--fg);
+  margin: 0.75rem 0 0.2rem;
+}
+.setup-faq dt:first-child { margin-top: 0; }
+.setup-faq dd {
+  margin: 0;
   font-size: 0.78rem;
   color: var(--fg-soft);
-  line-height: 1.5;
+  line-height: 1.7;
 }
-.setup-data-status-compliance { margin-top: 0.4rem; border-left-color: var(--accent); }
-.setup-data-status-badge-compliance { color: var(--accent); background: var(--accent-soft); border-color: rgba(252,76,2,0.25); }
