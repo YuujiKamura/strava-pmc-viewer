@@ -22,15 +22,18 @@
   <main class="shell" id="auth-shell" hidden>
     <section class="hero hero-minimal" data-state="unconfigured">
       <h2 class="hero-title">Strava Annual Fitness &amp; Freshness</h2>
-      <p class="hero-tag">年度別の推移を可視化するセルフホスト型ツール。</p>
+      <p class="hero-tag">年度別の推移を可視化するブラウザ型ツール。Strava の認証鍵を秘匿しつつ通信するため、中継 (Proxy) を visitor 側で 1 つ用意する必要があります。</p>
 
       <section class="hero-source" aria-labelledby="hero-source-title">
-        <h3 id="hero-source-title" class="hero-source-title">Verification</h3>
+        <h3 id="hero-source-title" class="hero-source-title">Trade-off &amp; Verification</h3>
         <p class="hero-source-lead">
-          AI 生成コード、MIT License。導入前に
+          AI 生成コード、MIT License。Strava の認証鍵は <strong>本来ローカルに置くもの</strong>
+          ですが、ブラウザ型ツールでは秘匿できないため、本実装では visitor 自身の Cloudflare
+          Worker を中継に使う ── あくまで「他人のサーバに預けるよりはマシ」という妥協で、
+          「クラウドに鍵を預けるのが正解」ではありません。導入前に
           <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js" target="_blank" rel="noopener">Proxy Worker</a>
-          を AI に査読させ、認証鍵が Strava 以外に送信されていないかを確認することを推奨。
-          鍵をクラウドに置くリスクを許容できる場合のみ、以下の手順に進んでください。
+          を AI に査読させ、認証鍵が Strava 以外に送信されていないかを確認推奨。
+          抵抗があれば中止、または fork して <strong>Local Proxy 方式</strong> (自分の PC で中継を立てる) に改造を。
         </p>
         <p class="hero-source-linkline">
           <a href="https://github.com/YuujiKamura/strava-pmc-viewer" target="_blank" rel="noopener">Logic Repository</a>
