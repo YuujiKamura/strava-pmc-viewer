@@ -31,35 +31,17 @@
       <p class="hero-tag">年度別のコンディション推移を可視化するセルフホスト型ツール。</p>
 
       <section class="hero-source" aria-labelledby="hero-source-title">
-        <h3 id="hero-source-title" class="hero-source-title">Your Data, Your Infrastructure</h3>
+        <h3 id="hero-source-title" class="hero-source-title">Architecture</h3>
         <p class="hero-source-lead">
-          開発者のサーバを介さず、visitor 自身の Cloudflare Worker を中継として動作します。
-          認証鍵は Worker の環境変数 (Secrets) にのみ保存。コードは右上 GitHub アイコンから。
+          ブラウザの制約 (CORS / Secret 漏洩リスク) を回避するため、visitor 自身の
+          Cloudflare Worker を中継として動作します。コードは右上 GitHub アイコンから。
         </p>
-        <details class="hero-source-faq">
-          <summary>Cloudflare って何? / 会社が消えたら鍵はどうなる?</summary>
-          <p>
-            Cloudflare は世界の Web トラフィックの大きな割合を支える CDN / エッジ
-            コンピューティング基盤の大手。本ツールが置く中継 (Worker) は visitor が
-            <code>wrangler deploy</code> で直接設置する workload で、visitor 自身の
-            Cloudflare アカウント内の隔離区画に閉じます ── 開発者のサーバには置かれず、
-            Cloudflare 社の共有ストレージにも置かれません。
-          </p>
-          <p>
-            Cloudflare 社に「無料ユーザの鍵を守る商業的インセンティブはない」のは事実。
-            ただし鍵を覗く動機もありません (他人 workload の Secrets を覗くのは AWS /
-            GCP / Azure と同様、事業崩壊級のリスク)。仮に Cloudflare がサービス停止したら
-            ツールは動かなくなり、Worker と Secrets も一緒に消えるだけ ── 鍵が他所に
-            転送される経路は本ツールに無く、「会社が消えて鍵が流出」は構造上発生しません。
-          </p>
-          <p>
-            残るリスクは <strong>Cloudflare インフラ自体の脆弱性 / 内部不正</strong> と
-            <strong>中継コードのバックドア</strong> の 2 つ。後者を排除するため、導入前に
-            worker/index.js を AI に査読推奨 (確認項目: 認証鍵が Strava 以外のドメインへ
-            送信されていないか)。前者を許容できない場合は、利用を控えるか fork して
-            ローカルプロキシ方式に改造してください。
-          </p>
-        </details>
+        <ul class="hero-source-bullets">
+          <li><strong>鍵の保管</strong>: visitor 自身の Cloudflare Worker Secrets 内のみ。ブラウザにも開発者サーバにも置かれません。</li>
+          <li><strong>データの流れ</strong>: Strava API ↔ あなたの Worker ↔ あなたのブラウザ。</li>
+          <li><strong>検証</strong>: 導入前に worker/index.js を AI に査読推奨 (確認項目: 認証鍵が Strava 以外のドメインへ送信されていないか)。</li>
+          <li><strong>依存と限界</strong>: 本ツールの安全性は Cloudflare の堅牢性と中継コードの正当性に依存します。Cloudflare は無料ユーザの鍵を保護する義務を負いません。合わない場合は fork して localhost で中継する構成に改造してください。</li>
+        </ul>
       </section>
 
       <div class="hero-cta-wrap">
