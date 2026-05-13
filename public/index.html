@@ -178,24 +178,6 @@ wrangler deploy</code></pre>
 
 
   <main class="shell" id="dash-shell" hidden>
-    <!-- データの旅路 (接続後、毎回表示): 倉庫 → 通訳さん → この画面 -->
-    <div class="data-flow" aria-label="データの流れ">
-      <div class="flow-node node-strava">
-        <span class="flow-label">Strava の倉庫</span>
-        <span class="flow-sub">あなたの記録の保管庫</span>
-      </div>
-      <div class="flow-arrow" aria-hidden="true">→</div>
-      <div class="flow-node node-worker">
-        <span class="flow-label">あなた専用の通訳</span>
-        <span class="flow-sub" id="flow-worker-sub">記録を借りる窓口役</span>
-      </div>
-      <div class="flow-arrow" aria-hidden="true">→</div>
-      <div class="flow-node node-browser">
-        <span class="flow-label">この画面</span>
-        <span class="flow-sub"><strong>あなたのブラウザの中だけ</strong></span>
-      </div>
-    </div>
-
     <p class="cards-asof"><span id="cards-asof">—</span> のスナップショット (チャートをクリックするとその日の値に切替)</p>
     <p class="cards-forecast" id="cards-forecast"></p>
     <div class="cards">
@@ -227,14 +209,15 @@ wrangler deploy</code></pre>
       <div class="windows" id="year-buttons"></div>
       <div class="windows-actions">
         <span class="status" id="fetch-status"></span>
+        <button id="today-btn" class="btn btn-ghost"
+                title="カードとチャート選択を「今日」の値に戻す">
+          現在時刻に戻る
+        </button>
         <button id="refresh-btn" class="btn btn-ghost" hidden
                 title="現在表示中の年を Strava から再取得してキャッシュを上書き">
           最新に更新
         </button>
-        <button id="enrich-btn" class="btn btn-ghost" hidden
-                title="表示中の年について Suffer Score / Power を 1 件ずつ追加取得 (1.6秒/件、1リクエスト/件消費)">
-          詳細値を取得
-        </button>
+        <button id="enrich-btn" class="btn btn-ghost" hidden type="button">詳細値を取得</button>
       </div>
     </div>
 

@@ -15,6 +15,7 @@ const yearButtons = $("year-buttons");
 const fetchStatus = $("fetch-status");
 const enrichBtn   = $("enrich-btn");
 const refreshBtn  = $("refresh-btn");
+const todayBtn    = $("today-btn");
 const zoomStatus  = $("zoom-status");
 const resetZoom   = $("reset-zoom");
 const dayTitle    = $("day-title");
@@ -159,6 +160,8 @@ let token = null;
 let chart = null;
 let activitiesCache = new Map();  // year → Array<Activity>
 let currentYear = null;
+let currentPoints = null;         // 「現在時刻に戻る」用の最新 points 参照
+let currentTodayIdx = 0;          // 現在年での「今日」相当の idx
 
 const escapeHtml = s => String(s).replace(/[&<>"']/g, ch =>
   ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch]));
@@ -455,6 +458,19 @@ if (refreshBtn) {
     if (currentYear != null) selectYear(currentYear, { force: true });
   });
 }
+if (todayBtn) {
+  todayBtn.addEventListener("click", () => {
+    if (!currentPoints) return;
+    // 当年でないなら当年に戻す、当年なら現在 idx で card 更新 (chart 選択もリセット)
+    const thisYear = new Date().getFullYear();
+    if (currentYear !== thisYear) {
+      selectYear(thisYear);
+    } else {
+      updateCards(currentPoints, currentTodayIdx);
+      if (chart) chart.resetZoom?.();
+    }
+  });
+}
 
 // ── year selection ──────────────────────────────────────────────────────
 function renderYearButtons() {
@@ -564,12 +580,13 @@ function render(year, activities) {
   // サマリーの基準日:
   //   - 当年表示: 今日 (date <= now の最新 point)
   //   - 過去年: その年の 12-31
-  // 「未来側の 12-31」を取ると EMA が減衰して 0.1 になってしまうバグ修正。
   const todayStr = new Date().toISOString().slice(0, 10);
   let refIdx = points.length - 1;
   for (let i = points.length - 1; i >= 0; i--) {
     if (points[i].date <= todayStr) { refIdx = i; break; }
   }
+  currentPoints = points;
+  currentTodayIdx = refIdx;
   updateCards(points, refIdx);
 
   // activities by date for click-panel
