@@ -1,6 +1,6 @@
 import * as auth from "./auth.js";
 import * as config from "./config.js";
-import { fetchActivities, fetchActivityDetail, getRateBudget } from "./strava.js";
+import { fetchActivities, fetchActivityDetail, getRateBudget, refreshRateStatus } from "./strava.js";
 import {
   computePmc, decayForward, hoursUntilFresh, lastActivityEndMs,
 } from "./pmc.js";
@@ -584,6 +584,11 @@ async function selectYear(year, { force = false } = {}) {
   fetchStatus.textContent = force ? "強制取得中…" : "確認中…";
 
   try {
+    // 年を選んだ瞬間に Strava 公式の rate-status を取りに行く (Worker 経由)。
+    // 当年の場合は API call 自体は走るので、その前後で snapshot を更新して
+    // 「いま本当に何回まで叩けるか」を user に見せる。失敗時は self-count に
+    // fallback (refreshRateStatus は null を返すだけで throw しない)。
+    refreshRateStatus(token).then(() => updateEnrichBtn()).catch(() => {});
     const acts = await loadYear(year, { force });
     // 当年表示時、CTL の warmup が 60 日では公式値と乖離するので、過去 3 年分
     // の cache を自動で確保 (cache 不在の年だけ API で fetch、user 操作不要)。
@@ -906,11 +911,12 @@ async function runEnrich(year, acts, { background = false } = {}) {
   }
 }
 
-/** 残 API 数フラグメント (本ツールが叩いた回数から自前計算)。
- *  Strava の X-RateLimit-* は CORS で expose されないので self count。 */
+/** 残 API 数フラグメント。Strava snapshot (Worker 経由で取得した公式値) があれば
+ *  それベース、無ければ self-count。source を括弧で明示。 */
 function apiRemainText() {
   const r = getRateBudget();
-  return `残 API ${r.fifteenRemaining}/15分・${r.dailyRemaining}/日`;
+  const tag = r.source === "strava" ? "" : " (本ツールでのカウント)";
+  return `残 API ${r.fifteenRemaining}/15分・${r.dailyRemaining}/日${tag}`;
 }
 
 /** enrich ボタンの状態を現在年の未取得件数に合わせて更新 (押す前に見えるラベル) */

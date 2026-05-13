@@ -1,9 +1,12 @@
-// Cloudflare Worker: Strava OAuth code/refresh exchange relay.
+// Cloudflare Worker: Strava OAuth code/refresh exchange relay + rate ping.
 // client_secret はここで保持して static site 側には漏らさない。
 //
 // Endpoints:
-//   POST /exchange  { code, redirect_uri } → { access_token, refresh_token, expires_at, athlete }
-//   POST /refresh   { refresh_token }      → { access_token, refresh_token, expires_at }
+//   POST /exchange     { code, redirect_uri } → { access_token, refresh_token, expires_at, athlete }
+//   POST /refresh      { refresh_token }      → { access_token, refresh_token, expires_at }
+//   POST /rate-status  { access_token }       → { fifteenUsed, fifteenLimit, dailyUsed, dailyLimit }
+//     ── Strava の X-RateLimit-* は CORS で expose されておらず browser から読めないため
+//        Worker 経由で /athlete を 1 回叩いて Strava の response header から抽出して返す
 //
 // Env (wrangler secret put):
 //   STRAVA_CLIENT_ID
@@ -102,6 +105,31 @@ export default {
         grant_type:    "refresh_token",
       });
       return jsonResponse(r.data, r.status, cors);
+    }
+
+    if (url.pathname === "/rate-status") {
+      const access_token = body.access_token;
+      if (!access_token) return jsonResponse({ error: "missing_access_token" }, 400, cors);
+
+      // /athlete を 1 回叩く (軽量 endpoint、現 user 情報を返すだけ)。本来の目的は
+      // Strava response の X-RateLimit-Limit / X-RateLimit-Usage 抽出のみ。
+      const r = await fetch("https://www.strava.com/api/v3/athlete", {
+        headers: { Authorization: `Bearer ${access_token}` },
+      });
+      const limitHeader = r.headers.get("X-RateLimit-Limit") || "";
+      const usageHeader = r.headers.get("X-RateLimit-Usage") || "";
+      const [lim15, limDay] = limitHeader.split(",").map(s => parseInt(s, 10));
+      const [use15, useDay] = usageHeader.split(",").map(s => parseInt(s, 10));
+      if (!Number.isFinite(lim15) || !Number.isFinite(use15)) {
+        return jsonResponse({ error: "rate_headers_missing", status: r.status }, 502, cors);
+      }
+      return jsonResponse({
+        fifteenUsed: use15, fifteenLimit: lim15,
+        dailyUsed:   useDay || 0, dailyLimit: limDay || 0,
+        fifteenRemaining: Math.max(0, lim15 - use15),
+        dailyRemaining:   Math.max(0, (limDay || 0) - (useDay || 0)),
+        fetchedAt: Date.now(),
+      }, 200, cors);
     }
 
     return jsonResponse({ error: "not_found" }, 404, cors);

@@ -2,6 +2,7 @@
 // 自分のデータだけを fetch する。永続化なし、memory only。
 
 import { refreshIfNeeded } from "./auth.js";
+import { getConfig } from "./config.js";
 
 const API = "https://www.strava.com/api/v3";
 
@@ -44,22 +45,74 @@ function logApiCall() {
   saveApiCallLog();
 }
 
-/** 直近 15min / 24h で叩いた回数から残り API 数を計算して返す。 */
+// Worker /rate-status で Strava から取った最新 snapshot (本ツール外で叩いた分も
+// 含む正確な値)。null の間は self-count に fallback。
+let stravaSnapshot = null;
+let stravaSnapshotAt = 0;
+
+/** Worker /rate-status を叩いて Strava 公式の usage を取得、snapshot を更新。
+ *  失敗時 (Worker URL 未設定 / 502 等) は黙って null のまま、self-count fallback。 */
+export async function refreshRateStatus(token) {
+  const cfg = getConfig();
+  if (!cfg || !cfg.workerUrl || !token || !token.access_token) return null;
+  try {
+    const r = await fetch(cfg.workerUrl + "/rate-status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ access_token: token.access_token }),
+    });
+    if (!r.ok) return null;
+    const data = await r.json();
+    if (data && Number.isFinite(data.fifteenLimit)) {
+      stravaSnapshot = data;
+      stravaSnapshotAt = Date.now();
+      return data;
+    }
+  } catch { /* network error 等は self-count 継続 */ }
+  return null;
+}
+
+/** 残 API 数を返す。Strava snapshot があればそれを基準に「snapshot 後の本ツール
+ *  call 数」を引いて返す、無ければ self-count のみ。 */
 export function getRateBudget() {
   const now = Date.now();
   const win15 = now - 900000;
-  let c15 = 0;
+  let localC15 = 0;
   for (let i = apiCallLog.length - 1; i >= 0; i--) {
-    if (apiCallLog[i] >= win15) c15++; else break;
+    if (apiCallLog[i] >= win15) localC15++; else break;
   }
-  const cDay = apiCallLog.length;
+  const localCDay = apiCallLog.length;
+
+  if (stravaSnapshot) {
+    // snapshot 後に本ツールが追加で叩いた分を加算 (snapshot 時刻以降の log だけ count)
+    let extra15 = 0, extraDay = 0;
+    for (let i = apiCallLog.length - 1; i >= 0; i--) {
+      if (apiCallLog[i] >= stravaSnapshotAt) {
+        if (apiCallLog[i] >= win15) extra15++;
+        extraDay++;
+      } else break;
+    }
+    const use15 = stravaSnapshot.fifteenUsed + extra15;
+    const useDay = stravaSnapshot.dailyUsed + extraDay;
+    const lim15 = stravaSnapshot.fifteenLimit || STRAVA_LIMIT_15MIN;
+    const limDay = stravaSnapshot.dailyLimit || STRAVA_LIMIT_DAY;
+    return {
+      fifteenUsed: use15, fifteenLimit: lim15,
+      fifteenRemaining: Math.max(0, lim15 - use15),
+      dailyUsed: useDay, dailyLimit: limDay,
+      dailyRemaining: Math.max(0, limDay - useDay),
+      source: "strava",
+    };
+  }
+  // fallback: self-count のみ
   return {
-    fifteenUsed: c15,
+    fifteenUsed: localC15,
     fifteenLimit: STRAVA_LIMIT_15MIN,
-    fifteenRemaining: Math.max(0, STRAVA_LIMIT_15MIN - c15),
-    dailyUsed: cDay,
+    fifteenRemaining: Math.max(0, STRAVA_LIMIT_15MIN - localC15),
+    dailyUsed: localCDay,
     dailyLimit: STRAVA_LIMIT_DAY,
-    dailyRemaining: Math.max(0, STRAVA_LIMIT_DAY - cDay),
+    dailyRemaining: Math.max(0, STRAVA_LIMIT_DAY - localCDay),
+    source: "self",
   };
 }
 
