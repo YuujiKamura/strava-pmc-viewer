@@ -89,6 +89,10 @@ body {
   text-transform: uppercase;
   font-weight: 600;
 }
+/* hero-minimal: 究極のミニマル (title + tag + button のみ) */
+.hero-minimal { padding: 5rem 1rem 4rem; }
+.hero-minimal .hero-title { font-size: 2.4rem; }
+.hero-minimal .hero-tag { color: var(--accent); font-size: 0.95rem; letter-spacing: 0.05em; margin: 0.5rem 0 2rem; font-weight: 500; }
 .hero-title {
   font-size: 1.9rem;
   font-weight: 600;
@@ -176,13 +180,27 @@ body {
 }
 .roadmap-step {
   flex: 1 1 240px; min-width: 220px;
+  position: relative;
   display: flex; gap: 0.75rem;
-  padding: 0.85rem 1rem;
+  padding: 1.1rem 1.2rem 1.2rem 1.1rem;
   background: #fafafa;
   border: 1px solid var(--line); border-radius: 8px;
-  opacity: 0.6;
+  opacity: 0.85;
+  overflow: hidden;
   transition: opacity 0.15s, border-color 0.15s, background 0.15s;
 }
+/* 背景に薄く巨大な数字 (modern step UI) */
+.roadmap-step::before {
+  content: attr(data-step);
+  position: absolute;
+  right: -0.5rem; bottom: -2.5rem;
+  font-size: 7rem; font-weight: 800;
+  color: rgba(0,0,0,0.04);
+  line-height: 1; pointer-events: none;
+}
+.roadmap-step.active::before { color: rgba(252, 76, 2, 0.10); }
+.roadmap-step.done::before { color: rgba(31, 111, 58, 0.10); }
+.roadmap-step .roadmap-num { display: none; }
 .roadmap-step.active {
   opacity: 1;
   background: var(--accent-soft);
@@ -274,8 +292,12 @@ body {
 .why-worker strong { color: var(--fg); }
 .why-worker em { font-style: normal; color: var(--accent); font-weight: 500; }
 .why-worker-tag { margin-top: 0.75rem !important; color: var(--muted) !important; font-size: 0.82rem !important; font-style: italic; }
-.roadmap-role { display: inline-block; font-size: 0.65rem; color: var(--accent); background: var(--accent-soft); padding: 0.1rem 0.5rem; border-radius: 999px; letter-spacing: 0.04em; margin-bottom: 0.25rem; font-weight: 600; text-transform: uppercase; }
-.roadmap-assure { margin-top: 0.5rem; font-size: 0.78rem; color: var(--pos); padding-top: 0.4rem; border-top: 1px dashed #cfe5d4; }
+.roadmap-role { display: inline-block; font-size: 0.7rem; color: var(--accent); letter-spacing: 0.1em; margin-bottom: 0.35rem; font-weight: 700; text-transform: uppercase; }
+.setup-lead { font-size: 0.88rem; color: var(--fg-soft); line-height: 1.7; margin: 0 0 1.25rem; }
+.setup-lead .info-link { color: var(--accent); text-decoration: underline dotted; font-size: 0.82rem; margin-left: 0.5rem; }
+.setup-footnote { background: #fafafa; border-radius: 6px; padding: 0.75rem 1rem; margin-top: 1.25rem; font-size: 0.78rem; color: var(--fg-soft); line-height: 1.7; }
+.setup-footnote strong { color: var(--fg); }
+.setup-footnote code { background: #ececec; padding: 0.05rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
 .setup-row {
   display: flex; align-items: center; gap: 0.75rem;
   margin: 0.45rem 0; flex-wrap: wrap;
