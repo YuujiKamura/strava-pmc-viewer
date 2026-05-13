@@ -21,17 +21,17 @@
        完全撤去。設定完了後に初めて自分のグラフが出る。 -->
   <main class="shell" id="auth-shell" hidden>
     <section class="hero hero-minimal" data-state="unconfigured">
-      <h2 class="hero-title">Strava 年度別 Fitness &amp; Freshness</h2>
+      <h2 class="hero-title">Strava Annual Fitness &amp; Freshness</h2>
       <p class="hero-tag">
-        走行データの保存先は、あなたのブラウザの localStorage と
-        あなた自身がデプロイした Cloudflare Worker (OAuth 中継用) のみ。
-        初回のみ Strava App 作成 + Worker デプロイの設定が必要です。
+        Strava API を利用した年度別のコンディション可視化ツール。セルフホストを
+        前提に、外部サーバーを介さずユーザー自身の Cloudflare Worker を経由して
+        通信する構成。
       </p>
       <div class="hero-cta-wrap">
-        <button id="hero-start" class="btn btn-primary btn-lg" type="button">設定を始める</button>
+        <button id="hero-start" class="btn btn-primary btn-lg" type="button">Setup Guide</button>
         <button id="hero-connect" class="btn btn-primary btn-lg" type="button" hidden>Strava と接続</button>
       </div>
-      <p class="hero-assure">設定は最初の一度だけ。あとは年度ボタンを押すだけです。</p>
+      <p class="hero-assure">環境構築の工数が発生します (Strava App + Cloudflare Worker + GitHub Pages の 3 点を visitor 自身で用意)。</p>
     </section>
 
     <!-- データ経路図 (実データなし、構成だけ) -->
@@ -43,12 +43,12 @@
       <div class="flow-arrow" aria-hidden="true">→</div>
       <div class="flow-node node-worker">
         <span class="flow-label">Cloudflare Worker</span>
-        <span class="flow-sub">あなたが立てた中継</span>
+        <span class="flow-sub">User-deployed Proxy</span>
       </div>
       <div class="flow-arrow" aria-hidden="true">→</div>
       <div class="flow-node node-browser">
         <span class="flow-label">ブラウザ</span>
-        <span class="flow-sub"><strong>Local Only</strong> (この画面)</span>
+        <span class="flow-sub">Local Only (この画面)</span>
       </div>
     </div>
   </main>
