@@ -855,7 +855,12 @@ function renderDay(idx, points, byDate) {
 // ── enrich (詳細値取得) ─────────────────────────────────────────────────
 // 一覧 API には suffer_score (= Strava 公式 Relative Effort) と NP が含まれない、
 // 個別 activity API で 1 件ずつ取得して埋めると tssFor の優先順位が上位に切替り
-// TSS が Strava 公式値に揃う。1 req/件、1.6 秒間隔、年 100〜300 件で 30〜45 分。
+// TSS が Strava 公式値に揃う。
+//
+// Strava rate limit: 100 calls / 15 分 = 9 秒/件。安全マージン込みで 10 秒間隔
+// に固定。年 200 件で約 33 分、1 日制限 1000 calls にも余裕で収まる。
+// 429 が返ってきたら 60 秒待機 (Strava の Retry-After も尊重) で復帰。
+const ENRICH_INTERVAL_MS = 10000;
 
 async function runEnrich(year, acts, { background = false } = {}) {
   const needs = acts.filter(a => a.suffer_score == null && a.weighted_average_watts == null);
@@ -879,10 +884,11 @@ async function runEnrich(year, acts, { background = false } = {}) {
           moving_time: d.moving_time,
         });
         done++;
+        const remainMin = Math.ceil((needs.length - done) * ENRICH_INTERVAL_MS / 60000);
         fetchStatus.textContent = background
-          ? `精度向上中 ${done}/${needs.length} (背景で進行)`
-          : `詳細取得 ${done}/${needs.length}`;
-        await new Promise(r => setTimeout(r, 1600));
+          ? `精度向上中 ${done}/${needs.length} (背景で進行、残り 約${remainMin}分)`
+          : `詳細取得 ${done}/${needs.length} (残り 約${remainMin}分)`;
+        await new Promise(r => setTimeout(r, ENRICH_INTERVAL_MS));
         // 10 件ごとに cache 保存して中断耐性 (タブ閉じても次回続きから)
         if (done % 10 === 0) cache.saveYearCache(athId, year, acts);
       } catch (e) {
