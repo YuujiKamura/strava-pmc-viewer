@@ -5,25 +5,40 @@ import { refreshIfNeeded } from "./auth.js";
 
 const API = "https://www.strava.com/api/v3";
 
-// 直前の Strava response から取った rate limit 情報。UI が残 API 数表示に使う。
-// Strava は response header に "X-RateLimit-Limit: 100,1000" と
-// "X-RateLimit-Usage: 60,300" を入れて返す (15min, daily の組)。
-let lastRateLimit = null;
+// Strava の rate limit: 100 calls / 15 min, 1000 calls / day。
+// 公式 response の X-RateLimit-* header は CORS で expose されておらず browser
+// JS から読めない (試したが Strava 側に Access-Control-Expose-Headers 未設定)。
+// → 自前で fetch のタイムスタンプを log して残数を計算する。
+// 制限は self-imposed (Strava と完全一致しない可能性: 別 tab・別アプリで叩いた分
+// はカウント漏れ) だが、本ツールが暴走しない上限としては機能する。
+export const STRAVA_LIMIT_15MIN = 100;
+export const STRAVA_LIMIT_DAY   = 1000;
+const apiCallLog = [];  // ms epoch の配列
 
-export function getLastRateLimit() { return lastRateLimit; }
+function logApiCall() {
+  const now = Date.now();
+  apiCallLog.push(now);
+  // 24h より古い entry は捨てる (memory リーク防止)
+  const cutoff = now - 86400000;
+  while (apiCallLog.length && apiCallLog[0] < cutoff) apiCallLog.shift();
+}
 
-function captureRateLimit(headers) {
-  const limit = headers.get && headers.get("X-RateLimit-Limit");
-  const usage = headers.get && headers.get("X-RateLimit-Usage");
-  if (!limit || !usage) return;
-  const [lim15, limDay] = limit.split(",").map(s => parseInt(s, 10));
-  const [use15, useDay] = usage.split(",").map(s => parseInt(s, 10));
-  if (!Number.isFinite(lim15) || !Number.isFinite(use15)) return;
-  lastRateLimit = {
-    fifteenUsed: use15, fifteenLimit: lim15,
-    dailyUsed:   useDay, dailyLimit:   limDay,
-    fifteenRemaining: Math.max(0, lim15 - use15),
-    dailyRemaining:   Math.max(0, (limDay || 0) - (useDay || 0)),
+/** 直近 15min / 24h で叩いた回数から残り API 数を計算して返す。 */
+export function getRateBudget() {
+  const now = Date.now();
+  const win15 = now - 900000;
+  let c15 = 0;
+  for (let i = apiCallLog.length - 1; i >= 0; i--) {
+    if (apiCallLog[i] >= win15) c15++; else break;
+  }
+  const cDay = apiCallLog.length;
+  return {
+    fifteenUsed: c15,
+    fifteenLimit: STRAVA_LIMIT_15MIN,
+    fifteenRemaining: Math.max(0, STRAVA_LIMIT_15MIN - c15),
+    dailyUsed: cDay,
+    dailyLimit: STRAVA_LIMIT_DAY,
+    dailyRemaining: Math.max(0, STRAVA_LIMIT_DAY - cDay),
   };
 }
 
@@ -47,8 +62,8 @@ export async function fetchActivities({ token, after, before, onProgress }) {
     if (after  != null) url.searchParams.set("after",  Math.floor(after));
     if (before != null) url.searchParams.set("before", Math.floor(before));
 
+    logApiCall();
     const r = await fetch(url, { headers });
-    captureRateLimit(r.headers);
     if (r.status === 429) {
       const retry = parseInt(r.headers.get("Retry-After") || "60", 10);
       onProgress?.(`rate limit、${retry}秒待機`);
@@ -68,8 +83,8 @@ export async function fetchActivities({ token, after, before, onProgress }) {
 /** DetailedActivity (suffer_score / NP / HR). 必要時のみ。 */
 export async function fetchActivityDetail({ token, id }) {
   const headers = await authHeader(token);
+  logApiCall();
   const r = await fetch(`${API}/activities/${id}`, { headers });
-  captureRateLimit(r.headers);
   if (r.status === 429) throw new Error("rate_limit");
   if (!r.ok) throw new Error(`detail fetch failed: ${r.status}`);
   return await r.json();

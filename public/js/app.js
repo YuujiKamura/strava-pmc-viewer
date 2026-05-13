@@ -1,6 +1,6 @@
 import * as auth from "./auth.js";
 import * as config from "./config.js";
-import { fetchActivities, fetchActivityDetail, getLastRateLimit } from "./strava.js";
+import { fetchActivities, fetchActivityDetail, getRateBudget } from "./strava.js";
 import {
   computePmc, decayForward, hoursUntilFresh, lastActivityEndMs,
 } from "./pmc.js";
@@ -906,11 +906,10 @@ async function runEnrich(year, acts, { background = false } = {}) {
   }
 }
 
-/** 残 API 数フラグメント (rate limit info があれば「残 API X/15分 Y/日」)。
- *  なければ空文字 (loadYear する前は表示できないので非表示)。 */
+/** 残 API 数フラグメント (本ツールが叩いた回数から自前計算)。
+ *  Strava の X-RateLimit-* は CORS で expose されないので self count。 */
 function apiRemainText() {
-  const r = getLastRateLimit();
-  if (!r) return "";
+  const r = getRateBudget();
   return `残 API ${r.fifteenRemaining}/15分・${r.dailyRemaining}/日`;
 }
 
