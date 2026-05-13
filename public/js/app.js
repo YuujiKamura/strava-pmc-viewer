@@ -361,7 +361,9 @@ function renderYearButtons() {
   } else {
     const thisYear = new Date().getFullYear();
     years = [];
-    for (let y = thisYear; y >= thisYear - 7; y--) years.push(y);
+    // Strava OAuth で取得できる範囲は基本制限なし。yuuji 等の長期 user 向けに
+    // 過去 15 年を default で並べる。data 無い年を押しても空 chart が出るだけ。
+    for (let y = thisYear; y >= thisYear - 14; y--) years.push(y);
   }
   const cachedSet = new Set(DEMO_MODE ? years : cache.cachedYears(token?.athlete?.id));
   for (const y of years) {

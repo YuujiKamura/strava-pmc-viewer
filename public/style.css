@@ -183,24 +183,26 @@ body {
 }
 .roadmap > .roadmap-arrow { display: none; }  /* 縦並びでは矢印不要、background number で順序示す */
 .roadmap-step {
-  flex: 1 1 240px; min-width: 220px;
+  /* 縦並びでは flex shorthand の height 制約は不要、内容で伸ばす */
+  min-width: 220px;
   position: relative;
   display: flex; gap: 0.75rem;
   padding: 1.1rem 1.2rem 1.2rem 1.1rem;
   background: #fafafa;
   border: 1px solid var(--line); border-radius: 8px;
   opacity: 0.85;
-  overflow: hidden;
+  overflow: hidden;     /* 背景数字 (::before) の leak を box 内に閉じ込める */
   transition: opacity 0.15s, border-color 0.15s, background 0.15s;
 }
-/* 背景に薄く巨大な数字 (modern step UI) */
+/* 背景に薄く巨大な数字 (modern step UI、内容の真後ろに沈める) */
 .roadmap-step::before {
   content: attr(data-step);
   position: absolute;
-  right: -0.5rem; bottom: -2.5rem;
-  font-size: 7rem; font-weight: 800;
+  right: 0.5rem; bottom: -1.5rem;       /* 内部に収め、下半分だけ見せる */
+  font-size: 8rem; font-weight: 800;
   color: rgba(0,0,0,0.04);
   line-height: 1; pointer-events: none;
+  z-index: 0;                           /* 内容より下 */
 }
 .roadmap-step.active::before { color: rgba(252, 76, 2, 0.10); }
 .roadmap-step.done::before { color: rgba(31, 111, 58, 0.10); }
@@ -227,7 +229,7 @@ body {
 .roadmap-step.done .roadmap-num::before { content: "✓"; }
 .roadmap-step.done .roadmap-num { font-size: 0; }
 .roadmap-step.done .roadmap-num::before { font-size: 1rem; }
-.roadmap-body { flex: 1; min-width: 0; }
+.roadmap-body { flex: 1; min-width: 0; position: relative; z-index: 1; }
 .roadmap-title { font-weight: 600; font-size: 0.92rem; margin-bottom: 0.1rem; }
 .roadmap-time { font-size: 0.72rem; color: var(--muted); margin-bottom: 0.4rem; }
 .roadmap-desc {
@@ -257,7 +259,7 @@ body {
   margin: 0.65rem 0 0;
   background: var(--code-bg); color: var(--code-fg);
   border-radius: 6px;
-  overflow: hidden;
+  overflow: visible;             /* 外枠は中身に応じて伸びる */
 }
 .codeblock pre {
   margin: 0;
