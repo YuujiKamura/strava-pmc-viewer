@@ -124,7 +124,7 @@ const cardsForecast = $("cards-forecast");
 function renderForecast(forecast) {
   if (!cardsForecast) return;
   if (!forecast.length) { cardsForecast.innerHTML = ""; return; }
-  // 1日後 / 3日後 / 7日後 / フレッシュ復帰日 を出す
+  // 1日後 / 3日後 / 7日後 / 余裕復帰日 を出す
   const day1  = forecast[0];
   const day3  = forecast[2]  || forecast[forecast.length - 1];
   const day7  = forecast[6]  || forecast[forecast.length - 1];
@@ -174,7 +174,7 @@ function setConditionAdvice(ctl, atl, tsb, ramp, forecast) {
     else if (ramp >= 3)  msg += ` 体力が順調に伸びています (+${ramp.toFixed(1)}/週)。`;
     else if (ramp <= -3) msg += ` 体力が下降中 (${ramp.toFixed(1)}/週) ── 休みすぎなら戻しを。`;
   }
-  // forecast がある (TSB<0 + 後続 rest 日あり) と「フレッシュまで N 日」を補足
+  // forecast がある (TSB<0 + 後続 rest 日あり) と「余裕に戻るまで N 日」を補足
   if (forecast && forecast.length && tsb < 0) {
     const fresh = forecast.find(p => p.tsb >= 0);
     if (fresh) {
@@ -562,7 +562,7 @@ async function selectYear(year, { force = false } = {}) {
     b.disabled = true;
   }
   // 過去年データは一度取ったら不変 (Strava 側で activity が遡って増えることはない)。
-  // 「最新に更新」は現在年だけ意味があるので過去年では隠す。「詳細値を取得」は
+  // 「最新に更新」は現在年だけ意味があるので過去年では隠す。「パワーデータを全件取得」は
   // 過去年でも HR / Power などの enrich が後付け可能なので有効のまま。
   const thisYear = new Date().getFullYear();
   const isCurrentYear = (year === thisYear);
@@ -592,7 +592,7 @@ async function selectYear(year, { force = false } = {}) {
     for (const b of yearButtons.querySelectorAll("button")) {
       b.classList.toggle("active", Number(b.dataset.year) === year);
     }
-    // 「公式精度に揃える」ボタンの状態を更新 (残件数と所要時間をラベルに出す)
+    // 「パワーデータを全件取得」ボタンの状態を更新 (残件数 + 残 API をラベルに出す)
     updateEnrichBtn();
   } catch (e) {
     fetchStatus.textContent = "エラー";

@@ -17,15 +17,15 @@
     </div>
   </header>
 
-  <!-- 未認証 landing: 抽象ヒーロー、他人 (yuuji) の実データを demo として
-       見せる過去の構成は完全撤去。設定完了後に初めて自分のグラフが出る。 -->
+  <!-- 未認証 landing: 抽象ヒーロー、他人の実データを demo として見せる構成は
+       完全撤去。設定完了後に初めて自分のグラフが出る。 -->
   <main class="shell" id="auth-shell" hidden>
     <section class="hero hero-minimal" data-state="unconfigured">
       <h2 class="hero-title">Strava 年度別 Fitness &amp; Freshness</h2>
       <p class="hero-tag">
         走行データの保存先は、あなたのブラウザの localStorage と
         あなた自身がデプロイした Cloudflare Worker (OAuth 中継用) のみ。
-        そのための初回設定が約 10 分必要です。
+        初回のみ Strava App 作成 + Worker デプロイの設定が必要です。
       </p>
       <div class="hero-cta-wrap">
         <button id="hero-start" class="btn btn-primary btn-lg" type="button">設定を始める</button>
@@ -58,35 +58,35 @@
     <div class="setup-body">
 
       <p class="setup-lead">
-        本ツールは「あなた専用の中継 (<strong>Cloudflare Worker</strong>)」を経由して
-        Strava と通信します。Strava の Client Secret も走行データも、開発者 (yuuji) の
-        サーバーは通らず、すべてあなたの管理下 (ブラウザ + あなたの Cloudflare アカウント)
-        で完結します。<span class="setup-lead-time">初回設定 約 10 分</span>。
+        <strong>Zero-Knowledge Architecture</strong> ── 走行データはブラウザ上で解析・
+        可視化するセルフホスト型の設計。Client Secret も Activity データも、
+        「Strava ↔ あなたの Cloudflare Worker ↔ あなたのブラウザ」だけで完結し、
+        外部サーバーへ送信される経路は構造上存在しません。
       </p>
       <details class="setup-why">
-        <summary>なぜこれが必要か (technical)</summary>
+        <summary>Technical Context — なぜ Worker を挟むのか</summary>
         <p>
           Strava OAuth は <code>Client Secret</code> で <code>code → access_token</code> を交換する仕様。
-          Client Secret はブラウザ JS に置けない (公開 = 漏洩) ため、token 交換だけを行う薄い Worker を間に
-          挟む。Worker はあなたの Cloudflare 上に立つので、Secret も走行データも開発者のサーバーを通らない。
-          Worker のソースは
+          Client Secret はブラウザ JS に置けない (= 公開 = 漏洩) ため、token 交換だけを行う薄い Worker
+          を間に挟む構成。Worker は visitor 自身の Cloudflare 上で動き、Secret も走行データも
+          外部サーバーを通りません。コードは
           <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js"
-             target="_blank" rel="noopener">worker/index.js</a> (約 90 行) で公開。
+             target="_blank" rel="noopener">worker/index.js</a> (約 100 行) で公開。
         </p>
       </details>
       <ol class="roadmap" aria-label="セットアップの流れ">
         <li class="roadmap-step" data-step="1">
           <div class="roadmap-num">1</div>
           <div class="roadmap-body">
-            <div class="roadmap-role">STEP 1 · 鍵を取る</div>
-            <div class="roadmap-title">Strava API App を作成</div>
+            <div class="roadmap-role">STEP 1</div>
+            <div class="roadmap-title">API Credentials</div>
             <div class="roadmap-desc">
               <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener" class="btn-link">
                 strava.com/settings/api を開く →
               </a>
-              「Create &amp; Manage Your App」を押す。Authorization Callback Domain に
-              <code id="setup-host-hint">—</code> を入れて、発行された
-              <strong>Client ID</strong> と <strong>Client Secret</strong> を控える。
+              で専用の App を作成。Authorization Callback Domain に
+              <code id="setup-host-hint">—</code> を設定し、発行された
+              <strong>Client ID</strong> と <strong>Client Secret</strong> を控えます。
             </div>
           </div>
         </li>
@@ -94,12 +94,12 @@
         <li class="roadmap-step" data-step="2">
           <div class="roadmap-num">2</div>
           <div class="roadmap-body">
-            <div class="roadmap-role">STEP 2 · 中継地点を建てる</div>
-            <div class="roadmap-title">Cloudflare Worker をデプロイ</div>
+            <div class="roadmap-role">STEP 2</div>
+            <div class="roadmap-title">Proxy Worker</div>
             <div class="roadmap-desc">
-              下のコマンドを全部コピーしてターミナルで実行 (最終行の
-              <code>YOUR-USERNAME</code> は自分の GitHub アカウントに置換)。
-              最後に表示される <code>xxxx.workers.dev</code> の URL を控える。
+              下のコマンドをターミナルで実行し、中継用 Worker をデプロイ
+              (最終行の <code>YOUR-USERNAME</code> は自分の GitHub アカウントに書き換え)。
+              完了時に表示される <code>xxxx.workers.dev</code> の URL を控えます。
             </div>
             <div class="codeblock" data-lang="bash">
               <button class="codeblock-copy btn-sm" type="button" data-copy-target="code-wrangler">全コピー</button>
@@ -112,10 +112,10 @@ wrangler secret put STRAVA_CLIENT_SECRET
 wrangler deploy --var ALLOWED_ORIGIN:"https://YOUR-USERNAME.github.io"</code></pre>
             </div>
             <p class="code-disclosure">
-              ↑ デプロイされる Worker のコード全文 (~90 行) は
+              この Worker は通信の中継のみ ── Strava の <code>/oauth/token</code> へ
+              code → token を交換するだけで、データ保存ロジックは入っていません。コード全文は
               <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js"
-                 target="_blank" rel="noopener">GitHub で公開</a>
-              。やっているのは Strava の <code>/oauth/token</code> 中継のみ、データ保存ロジックは入っていません。
+                 target="_blank" rel="noopener">GitHub で公開</a> (約 100 行)。
             </p>
           </div>
         </li>
@@ -123,11 +123,11 @@ wrangler deploy --var ALLOWED_ORIGIN:"https://YOUR-USERNAME.github.io"</code></p
         <li class="roadmap-step" data-step="3">
           <div class="roadmap-num">3</div>
           <div class="roadmap-body">
-            <div class="roadmap-role">STEP 3 · 連携を仕上げる</div>
-            <div class="roadmap-title">SPA に貼り付けて接続</div>
+            <div class="roadmap-role">STEP 3</div>
+            <div class="roadmap-title">Integration</div>
             <div class="roadmap-desc">
-              下のフォームに <strong>Client ID</strong> と <strong>Worker URL</strong> を入れて「保存」。
-              ヘッダの「Strava と接続」を押すと年度別グラフが表示されます。
+              下のフォームに <strong>Client ID</strong> と <strong>Worker URL</strong>
+              を入力して「保存」。ヘッダの「Strava と接続」を押すと年度別グラフが表示されます。
             </div>
           </div>
         </li>
@@ -153,7 +153,11 @@ wrangler deploy --var ALLOWED_ORIGIN:"https://YOUR-USERNAME.github.io"</code></p
         </div>
         <div class="setup-data-status" aria-label="データ保存に関する注釈">
           <span class="setup-data-status-badge">Data Status: Local Only</span>
-          <span class="setup-data-status-note">取得したアクティビティはお使いのブラウザの localStorage にのみ保存されます。ブラウザのキャッシュをクリアすると削除されます。</span>
+          <span class="setup-data-status-note">取得データはブラウザの localStorage にのみ保存されます。外部サーバーへの送信や他ユーザーとのデータ共有は構造上不可能です。</span>
+        </div>
+        <div class="setup-data-status setup-data-status-compliance">
+          <span class="setup-data-status-badge setup-data-status-badge-compliance">Compliance: Strava ToS</span>
+          <span class="setup-data-status-note">Strava API Agreement §5.1 (本人 OAuth + 本人 UI 表示) / §2.10 (他人データ非取扱) / §2.14 (非再配布) / §2.15 (非 sublicense) の範囲で動作。</span>
         </div>
         <div class="setup-actions">
           <button id="setup-save" class="btn btn-primary" type="button">保存</button>

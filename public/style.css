@@ -505,19 +505,6 @@ body {
   padding: 1rem; font-size: 0.72rem;
 }
 
-/* ── Setup lead 内の「初回設定 約10分」chip ──────── */
-.setup-lead-time {
-  display: inline-block;
-  margin-left: 0.5rem;
-  font-size: 0.78rem;
-  color: var(--accent);
-  background: var(--accent-soft);
-  padding: 0.1rem 0.55rem;
-  border-radius: 999px;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-
 /* ── setup checkbox の「推奨」pill ───────────────── */
 .setup-row-pill {
   display: inline-block;
@@ -561,3 +548,5 @@ body {
   color: var(--fg-soft);
   line-height: 1.5;
 }
+.setup-data-status-compliance { margin-top: 0.4rem; border-left-color: var(--accent); }
+.setup-data-status-badge-compliance { color: var(--accent); background: var(--accent-soft); border-color: rgba(252,76,2,0.25); }

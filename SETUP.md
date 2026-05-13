@@ -1,7 +1,7 @@
 # SETUP — strava-pmc-viewer
 
 各 visitor が自分のインフラで動かすための手順。Cloudflare と Strava の無料枠で
-完結する。所要時間: 約 20 分。
+完結する。
 
 ## 必要なもの
 
@@ -18,8 +18,8 @@
 - **自分の GitHub Pages** に SPA を置く → ブラウザだけで動く Strava ビューア
 - SPA に「自分の Client ID」と「自分の Worker URL」を貼って完成
 
-このリポの作者 (yuuji) のサーバには一切依存しない。誰かのトークンや運動データが
-共有サーバに溜まることもない。rate limit (Strava の 100 reads/15min) は自分の
+本ツール作者のインフラには一切依存しない。誰かのトークンや運動データが共有
+サーバに溜まることもない。rate limit (Strava の 100 reads/15min) は自分の
 App だけで使い切れる。
 
 ---
@@ -52,7 +52,7 @@ App を作って** callback domain を `localhost` にしておくと楽。
 
 ---
 
-## 2. Cloudflare Worker をデプロイする (10 分)
+## 2. Cloudflare Worker をデプロイする
 
 Worker は Strava の「認可コード ↔ アクセストークン」交換だけを担当する小さな
 サーバ。Client Secret はここから外に出ない。
@@ -163,7 +163,7 @@ SPA を操作するとリクエストログが流れる。
 ## セキュリティ・プライバシーまとめ
 
 - **Client Secret** は自分の Cloudflare Worker のみ保持。ブラウザにも、リポにも、
-  yuuji 側のサーバにも置かれない
+  作者側のサーバにも置かれない
 - **Access Token** はブラウザの localStorage に置かれる。本人のデバイスから外に
   出ない
 - **Activity データ** はブラウザ内で取得・計算・描画し、localStorage に同一ユーザー
