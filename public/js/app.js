@@ -57,10 +57,49 @@ function updateCards(points, idx) {
   const ramp = idx >= 7 ? (p.ctl - points[idx - 7].ctl) : null;
   mRamp.textContent = ramp != null ? ramp.toFixed(1) : "—";
   if (cardsAsOf) cardsAsOf.textContent = `${p.date} 時点`;
-  setConditionAdvice(p.ctl, p.atl, p.tsb, ramp);
+
+  // リカバリー予測 (TSS=0 を仮定した場合の TSB が future points に既に
+  // 計算済み)。points 配列を逆引きするだけ、追加計算なし。
+  // 注意: 5/14 以降に活動が記録された日があると forecast の前提 (休む)
+  // が崩れるので、idx 以降を「TSS が 0 の連続区間」だけ取って予測する。
+  const forecast = forecastFromPoints(points, idx);
+  renderForecast(forecast);
+
+  setConditionAdvice(p.ctl, p.atl, p.tsb, ramp, forecast);
 }
 
-function setConditionAdvice(ctl, atl, tsb, ramp) {
+/**
+ * idx の次の日から「TSS が 0 連続している間」の point を返す。
+ * 途中で活動 (TSS > 0) があったらそこで打ち切り。
+ */
+function forecastFromPoints(points, idx) {
+  const out = [];
+  for (let i = idx + 1; i < points.length; i++) {
+    if (points[i].tss > 0) break;
+    out.push(points[i]);
+    if (out.length >= 14) break;  // 最大 2 週間
+  }
+  return out;
+}
+
+const cardsForecast = $("cards-forecast");
+function renderForecast(forecast) {
+  if (!cardsForecast) return;
+  if (!forecast.length) { cardsForecast.innerHTML = ""; return; }
+  // 1日後 / 3日後 / 7日後 / フレッシュ復帰日 を出す
+  const day1  = forecast[0];
+  const day3  = forecast[2]  || forecast[forecast.length - 1];
+  const day7  = forecast[6]  || forecast[forecast.length - 1];
+  const fresh = forecast.find(p => p.tsb >= 0);
+  const parts = [];
+  parts.push(`明日 (${day1.date}) TSB <strong>${day1.tsb.toFixed(0)}</strong>`);
+  if (day3 !== day1) parts.push(`3日後 (${day3.date}) <strong>${day3.tsb.toFixed(0)}</strong>`);
+  if (day7 !== day3 && day7 !== day1) parts.push(`1週間後 (${day7.date}) <strong>${day7.tsb.toFixed(0)}</strong>`);
+  if (fresh) parts.push(`フレッシュ復帰 <strong>${fresh.date}</strong> (あと ${forecast.indexOf(fresh) + 1}日)`);
+  cardsForecast.innerHTML = `休めば → ${parts.join(" · ")}`;
+}
+
+function setConditionAdvice(ctl, atl, tsb, ramp, forecast) {
   if (!conditionAdvice) return;
   let msg = "", cls = "neutral";
 
@@ -96,6 +135,14 @@ function setConditionAdvice(ctl, atl, tsb, ramp) {
     if (ramp >= 7)       msg += ` 持久力ベースが急増中 (+${ramp.toFixed(1)}/週) ── 怪我リスク域、強度の伸ばし方注意。`;
     else if (ramp >= 3)  msg += ` 持久力ベースが順調に伸びています (+${ramp.toFixed(1)}/週)。`;
     else if (ramp <= -3) msg += ` 持久力ベースが下降中 (${ramp.toFixed(1)}/週) ── 休みすぎなら戻しを。`;
+  }
+  // forecast がある (TSB<0 + 後続 rest 日あり) と「フレッシュまで N 日」を補足
+  if (forecast && forecast.length && tsb < 0) {
+    const fresh = forecast.find(p => p.tsb >= 0);
+    if (fresh) {
+      const days = forecast.indexOf(fresh) + 1;
+      msg += ` (このまま休むと ${fresh.date} 頃にフレッシュ復帰、約 ${days}日。)`;
+    }
   }
   conditionAdvice.textContent = msg;
   conditionAdvice.className = "condition-advice " + cls;
