@@ -229,7 +229,12 @@ import { escapeHtml, dedupActivities, formatElapsed } from "./util.js";
 })();
 
 function onConnected() {
-  authStatus.textContent = `接続済${token.athlete ? ` (${token.athlete.firstname || ""} ${token.athlete.lastname || ""})` : ""}`;
+  // 「現在の取得 scope」を pill に併記。private が出ない時に user が
+  // 一目で「あ、いま public 限定で動いてる」を確認できる可視化。
+  const cfg = config.getConfig();
+  const scopeLabel = (cfg && cfg.scopeReadAll) ? "非公開含む" : "公開のみ";
+  const athleteName = token.athlete ? ` (${token.athlete.firstname || ""} ${token.athlete.lastname || ""})` : "";
+  authStatus.textContent = `接続済${athleteName} · ${scopeLabel}`;
   authStatus.classList.add("connected");
   connectBtn.hidden = true;
   logoutBtn.hidden  = false;
