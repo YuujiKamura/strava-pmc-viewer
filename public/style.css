@@ -103,20 +103,49 @@ body {
   font-size: 0.78rem;
   margin: 0.5rem 0 0;
 }
-.hero-trust {
-  color: var(--muted);
-  font-size: 0.78rem;
-  margin: 1.2rem auto 0;
-  padding: 0.8rem 1rem;
-  max-width: 580px;
+/* ── Hero Source & Verification block (CTA より上に配置) ─── */
+.hero-source {
+  text-align: left;
+  margin: 1.5rem auto;
+  padding: 1rem 1.2rem;
+  max-width: 600px;
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--bg-elev);
+}
+.hero-source-title {
+  margin: 0 0 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.hero-source-lead {
+  margin: 0 0 0.6rem;
+  font-size: 0.88rem;
+  color: var(--fg);
+  line-height: 1.6;
+}
+.hero-source-links {
+  margin: 0 0 0.6rem;
+  padding-left: 1.1rem;
+  font-size: 0.82rem;
+  line-height: 1.8;
+}
+.hero-source-links li { margin: 0.2rem 0; }
+.hero-source-links a { color: var(--fg); font-weight: 600; text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+.hero-source-meta { color: var(--muted); font-weight: 400; font-size: 0.76rem; }
+.hero-source-recommend {
+  margin: 0.5rem 0 0;
+  padding: 0.6rem 0 0;
+  border-top: 1px dashed var(--line);
+  font-size: 0.8rem;
+  color: var(--fg-soft);
   line-height: 1.7;
 }
-.hero-trust strong { color: var(--fg); font-weight: 600; }
-.hero-trust a { color: var(--fg); text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 2px; }
-.hero-trust a:hover { text-decoration-color: var(--accent); }
+.hero-source-recommend strong { color: var(--fg); font-weight: 600; }
+.hero-source-recommend code { background: var(--accent-soft); color: var(--accent); padding: 0 0.3rem; border-radius: 3px; font-size: 0.86em; }
 /* ── Setup panel (collapsed by default) ─────────────── */
 .setup-panel { max-width: 1100px; margin: 0.5rem auto; padding: 0 1rem; }
 .setup-panel > summary {

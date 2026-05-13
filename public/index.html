@@ -23,24 +23,41 @@
     <section class="hero hero-minimal" data-state="unconfigured">
       <h2 class="hero-title">Strava Annual Fitness &amp; Freshness</h2>
       <p class="hero-tag">年度別のコンディション推移を可視化するセルフホスト型ツール。<strong>コードは AI 生成</strong>。</p>
+
+      <section class="hero-source" aria-labelledby="hero-source-title">
+        <h3 id="hero-source-title" class="hero-source-title">Source Code &amp; Verification</h3>
+        <p class="hero-source-lead">
+          能書きより先にソースを読んでください。開発者の言葉ではなく、コードとその挙動を
+          信頼の根拠に。
+        </p>
+        <ul class="hero-source-links">
+          <li>
+            <a href="https://github.com/YuujiKamura/strava-pmc-viewer" target="_blank" rel="noopener">
+              Logic Repository (MIT License)
+            </a>
+            <span class="hero-source-meta">— SPA (UI / 描画 / OAuth flow / PMC 計算) + Worker + tests</span>
+          </li>
+          <li>
+            <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js" target="_blank" rel="noopener">
+              Proxy Worker (worker/index.js, 約 100 行)
+            </a>
+            <span class="hero-source-meta">— Strava OAuth トークン中継のみ、データ保存ロジックなし</span>
+          </li>
+        </ul>
+        <p class="hero-source-recommend">
+          <strong>AI 生成コードなので、検証も AI に任せられる</strong>のが本ツールの設計
+          意図 ── 推奨は <code>git clone</code> してローカルで AI エージェント
+          (Claude Code / Cursor / Aider 等) に全リポを読ませること。意図しない外部送信や
+          不審な通信がないかを網羅的に検査できます。Worker 単体 (約 100 行) なら ChatGPT /
+          Claude に貼って読ませるだけでも入口になります。
+        </p>
+      </section>
+
       <div class="hero-cta-wrap">
         <button id="hero-start" class="btn btn-primary btn-lg" type="button">Setup Guide</button>
         <button id="hero-connect" class="btn btn-primary btn-lg" type="button" hidden>Strava と接続</button>
       </div>
       <p class="hero-assure">動作には visitor 自身の Strava App + Cloudflare Worker の構築が必要です。</p>
-      <p class="hero-trust">
-        全ソース <strong>MIT License</strong> で公開 ──
-        <a href="https://github.com/YuujiKamura/strava-pmc-viewer" target="_blank" rel="noopener">リポ全体</a>
-        ／
-        <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js" target="_blank" rel="noopener">Proxy Worker (約 100 行)</a>。
-        <br>
-        AI 生成コードなので、導入前に <strong>git clone してローカルで AI エージェント
-        (Claude Code / Cursor / Aider 等) に全リポを読ませて検証することを推奨</strong>。
-        意図しない外部送信や挙動がないかを網羅的に確認できます。ブラウザ上の
-        ChatGPT / Claude に
-        <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js" target="_blank" rel="noopener">worker/index.js</a>
-        だけ貼って読ませるのも入口としては可。
-      </p>
     </section>
 
     <!-- データ経路図 (実データなし、構成だけ) -->
