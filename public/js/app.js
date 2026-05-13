@@ -44,51 +44,23 @@ const heroConnectBtn = $("hero-connect");
 const mCtl  = $("m-ctl"), mAtl = $("m-atl"), mTsb = $("m-tsb"), mRamp = $("m-ramp");
 const cardTsb = $("card-tsb");
 
-// ── demo mode detection ─────────────────────────────────────────────────
-// 初回 visitor (config 未設定 + token 無し) は **自動的に demo mode** で起動し、
-// 先にチャートの動きを見せてから「自分のデータで見たい?」と誘導する設計。
-// 明示 `?demo=1` / `#demo` でも入れる。`?fresh=1` で demo skip (config 設定済の
-// user が demo を強制スキップしたい場合)。
-const DEMO_MODE = (() => {
-  try {
-    const url = new URL(location.href);
-    if (url.searchParams.get("fresh") === "1") return false;
-    if (url.searchParams.get("demo") === "1") return true;
-    if ((url.hash || "").toLowerCase().includes("demo")) return true;
-    // 自動 demo: config 未設定 AND token 無しのときだけ。一度でも config を
-    // 保存した user は通常 flow (config 済なら setup 不要、token も持ってる
-    // 可能性高い)。
-    const cfgUnset    = !config.isConfigured();
-    const tokenAbsent = !localStorage.getItem("strava_pmc_token_v1");
-    return cfgUnset && tokenAbsent;
-  } catch { /* noop */ }
-  return false;
-})();
+// demo mode 完全廃止 (2026-05-13): user 訂正「俺のデータを他の人間に見せられる
+// わけがない」── プライバシー謳うツールが他人 (yuuji) の実データを demo として
+// 配信する自己矛盾を解消。demo-data.json は物理削除、本コードからも demo 関連
+// 経路を撤去。`?demo=1` / `#demo` / `?fresh=1` の URL param も無効化。
+const DEMO_MODE = false;
 
 // ── state ────────────────────────────────────────────────────────────────
 let token = null;
 let chart = null;
 let activitiesCache = new Map();  // year → Array<Activity>
 let currentYear = null;
-let demoActivities = null;        // demo mode: 全件 (year filter 前) cache
-let demoYearsAvailable = null;    // demo mode: data 範囲から決まる年度配列
 
 const escapeHtml = s => String(s).replace(/[&<>"']/g, ch =>
   ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch]));
 
 // ── boot ────────────────────────────────────────────────────────────────
 (async function boot() {
-  if (DEMO_MODE) {
-    // demo は config 不要だが、setup へ誘導するため panel と歯車は残す。
-    wireSetupPanel();
-    wireCopyButtons();
-    wireHero();
-    renderSetupCurrent();
-    refreshWizardSteps();
-    await bootDemo();
-    return;
-  }
-
   wireSetupPanel();
   wireCopyButtons();
   wireHero();
@@ -96,9 +68,6 @@ const escapeHtml = s => String(s).replace(/[&<>"']/g, ch =>
   refreshWizardSteps();
 
   if (!config.isConfigured()) {
-    // config 未設定: hero CTA「さっそく始める」を押すと setup を開く UX。
-    // ここで setup を auto-open すると、CTA を押しても変化が見えず「何も起きない」
-    // と user に映る (実際に user 報告あり)。
     onDisconnectedUnconfigured();
     return;
   }
@@ -117,72 +86,6 @@ const escapeHtml = s => String(s).replace(/[&<>"']/g, ch =>
   if (token) onConnected();
   else       onDisconnected();
 })();
-
-async function bootDemo() {
-  const banner = $("demo-banner");
-  if (banner) banner.hidden = false;
-  // demo banner の「安全に接続する」CTA: 押されたら setup を開く + scroll
-  const demoConnectCta = $("demo-connect-cta");
-  if (demoConnectCta) {
-    demoConnectCta.addEventListener("click", () => {
-      openSetupPanel();
-      requestAnimationFrame(() => {
-        setupPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
-        setTimeout(() => setupClientInput?.focus(), 300);
-      });
-    });
-  }
-  authStatus.textContent = "demo: 接続なし";
-  connectBtn.hidden = true;
-  logoutBtn.hidden  = true;
-  authShell.hidden  = true;
-  dashShell.hidden  = false;
-
-  try {
-    const res = await fetch("./demo-data.json", { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    demoActivities = Array.isArray(data) ? data : (Array.isArray(data.activities) ? data.activities : null);
-    if (!demoActivities) throw new Error("demo-data.json: 配列または {activities:[…]} 形式が必要");
-  } catch (e) {
-    showDemoLoadError(e);
-    return;
-  }
-
-  demoYearsAvailable = computeDemoYears(demoActivities);
-  const detail = $("demo-banner-detail");
-  if (detail) {
-    const n = demoActivities.length;
-    const yrs = demoYearsAvailable.length
-      ? `${demoYearsAvailable[demoYearsAvailable.length - 1]}〜${demoYearsAvailable[0]}`
-      : "—";
-    detail.textContent = ` (${n} 件, ${yrs})`;
-  }
-
-  renderYearButtons();
-  const initial = demoYearsAvailable.includes(new Date().getFullYear())
-    ? new Date().getFullYear()
-    : demoYearsAvailable[0] ?? new Date().getFullYear();
-  selectYear(initial);
-}
-
-function computeDemoYears(acts) {
-  const years = new Set();
-  for (const a of acts) {
-    if (!a.start_date) continue;
-    const y = Number(a.start_date.slice(0, 4));
-    if (Number.isFinite(y)) years.add(y);
-  }
-  return Array.from(years).sort((a, b) => b - a);  // 新しい順
-}
-
-function showDemoLoadError(e) {
-  const msg = `demo-data.json の読み込みに失敗: ${e && e.message ? e.message : e}. ` +
-              `\`bin/rails runner scripts/export_demo_json.rb\` で生成してください。`;
-  fetchStatus.textContent = msg;
-  if (yearButtons) yearButtons.innerHTML = "";
-  console.error(msg);
-}
 
 function onConnected() {
   authStatus.textContent = `接続済${token.athlete ? ` (${token.athlete.firstname || ""} ${token.athlete.lastname || ""})` : ""}`;

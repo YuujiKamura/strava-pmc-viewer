@@ -17,29 +17,39 @@
     </div>
   </header>
 
-  <div id="demo-banner" class="demo-banner" hidden>
-    <div class="demo-banner-row">
-      <div>
-        <strong>これはデモです</strong>: yuuji の 13 年分の走行データで動きを試せます<span id="demo-banner-detail"></span>。
-      </div>
-      <div>
-        <button id="demo-connect-cta" class="btn btn-primary" type="button">自分のデータで見たい → 安全に接続する</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 未認証 landing: hero + why-worker (上部)、setup-panel は下に隠す -->
-  <!-- 未認証 landing: 最小ヒーロー (title + tagline + button だけ) -->
+  <!-- 未認証 landing: 抽象ヒーロー、他人 (yuuji) の実データを demo として
+       見せる過去の構成は完全撤去。設定完了後に初めて自分のグラフが出る。 -->
   <main class="shell" id="auth-shell" hidden>
     <section class="hero hero-minimal" data-state="unconfigured">
-      <h2 class="hero-title">あなたの 10 年分を、<br>1 秒で振り返る。</h2>
-      <p class="hero-tag">Strava の記録を、1 年ごとのグラフに。</p>
+      <h2 class="hero-title">あなたの走りを、<br>誰にも渡さない。</h2>
+      <p class="hero-tag">
+        Strava の記録を、あなたのブラウザの中だけで年度別グラフにします。<br>
+        <strong>開発者を含め、他の誰かがあなたのデータを見ることは物理的に不可能です。</strong>
+      </p>
       <div class="hero-cta-wrap">
-        <button id="hero-start" class="btn btn-primary btn-lg" type="button">自分のデータで試す</button>
+        <button id="hero-start" class="btn btn-primary btn-lg" type="button">仕組みを見て、自分で始める</button>
         <button id="hero-connect" class="btn btn-primary btn-lg" type="button" hidden>Strava と接続</button>
       </div>
-      <p class="hero-assure">データは誰にも送信されません。安心してください。</p>
+      <p class="hero-assure">設定は最初の一度だけ。あとは年度を選ぶだけです。</p>
     </section>
+
+    <!-- 抽象的なフロー図 (実データなし、概念だけ) -->
+    <div class="data-flow data-flow-preview" aria-label="データの流れ">
+      <div class="flow-node node-strava">
+        <span class="flow-label">Strava の倉庫</span>
+        <span class="flow-sub">あなたの記録の保管庫</span>
+      </div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node node-worker">
+        <span class="flow-label">あなた専用の通訳</span>
+        <span class="flow-sub">記録を借りる窓口役</span>
+      </div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node node-browser">
+        <span class="flow-label">この画面</span>
+        <span class="flow-sub"><strong>あなたのブラウザの中だけ</strong></span>
+      </div>
+    </div>
   </main>
 
   <details id="setup-panel" class="setup-panel">
@@ -159,7 +169,7 @@ wrangler deploy</code></pre>
 
 
   <main class="shell" id="dash-shell" hidden>
-    <!-- データの旅路: 倉庫 → 通訳さん → この画面 -->
+    <!-- データの旅路 (接続後、毎回表示): 倉庫 → 通訳さん → この画面 -->
     <div class="data-flow" aria-label="データの流れ">
       <div class="flow-node node-strava">
         <span class="flow-label">Strava の倉庫</span>
@@ -176,6 +186,8 @@ wrangler deploy</code></pre>
         <span class="flow-sub"><strong>あなたのブラウザの中だけ</strong></span>
       </div>
     </div>
+
+    <div class="cards">
       <div class="card"><div class="label">CTL (Fitness)</div><div class="value" id="m-ctl">—</div></div>
       <div class="card"><div class="label">ATL (Fatigue)</div><div class="value" id="m-atl">—</div></div>
       <div class="card" id="card-tsb"><div class="label">TSB (Form)</div><div class="value" id="m-tsb">—</div></div>
