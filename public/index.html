@@ -96,18 +96,19 @@
             <div class="roadmap-role">STEP 2</div>
             <div class="roadmap-title">Cloudflare にデプロイ</div>
             <div class="roadmap-desc">
-              下のコマンドを全部コピーしてターミナルで実行。最後に表示される
-              <code>xxxx.workers.dev</code> の URL を控える。
+              下のコマンドを全部コピーしてターミナルで実行 (最終行の
+              <code>YOUR-USERNAME</code> は自分の GitHub アカウントに置換)。
+              最後に表示される <code>xxxx.workers.dev</code> の URL を控える。
             </div>
             <div class="codeblock" data-lang="bash">
               <button class="codeblock-copy btn-sm" type="button" data-copy-target="code-wrangler">全コピー</button>
               <pre><code id="code-wrangler">npm install -g wrangler
 wrangler login
-git clone &lt;このリポ&gt;
+git clone https://github.com/yuujikamura/strava-pmc-viewer.git
 cd strava-pmc-viewer/worker
 wrangler secret put STRAVA_CLIENT_ID
 wrangler secret put STRAVA_CLIENT_SECRET
-wrangler deploy</code></pre>
+wrangler deploy --var ALLOWED_ORIGIN:"https://YOUR-USERNAME.github.io"</code></pre>
             </div>
             <p class="code-disclosure">
               ↑ デプロイされる Worker のコード全文 (~90 行) は
