@@ -45,12 +45,22 @@ const mCtl  = $("m-ctl"), mAtl = $("m-atl"), mTsb = $("m-tsb"), mRamp = $("m-ram
 const cardTsb = $("card-tsb");
 
 // ── demo mode detection ─────────────────────────────────────────────────
-// `?demo=1` か `#demo` で OAuth スキップ → ./demo-data.json をローカル読込
+// 初回 visitor (config 未設定 + token 無し) は **自動的に demo mode** で起動し、
+// 先にチャートの動きを見せてから「自分のデータで見たい?」と誘導する設計。
+// 明示 `?demo=1` / `#demo` でも入れる。`?fresh=1` で demo skip (config 設定済の
+// user が demo を強制スキップしたい場合)。
 const DEMO_MODE = (() => {
   try {
     const url = new URL(location.href);
+    if (url.searchParams.get("fresh") === "1") return false;
     if (url.searchParams.get("demo") === "1") return true;
     if ((url.hash || "").toLowerCase().includes("demo")) return true;
+    // 自動 demo: config 未設定 AND token 無しのときだけ。一度でも config を
+    // 保存した user は通常 flow (config 済なら setup 不要、token も持ってる
+    // 可能性高い)。
+    const cfgUnset    = !config.isConfigured();
+    const tokenAbsent = !localStorage.getItem("strava_pmc_token_v1");
+    return cfgUnset && tokenAbsent;
   } catch { /* noop */ }
   return false;
 })();
@@ -69,9 +79,12 @@ const escapeHtml = s => String(s).replace(/[&<>"']/g, ch =>
 // ── boot ────────────────────────────────────────────────────────────────
 (async function boot() {
   if (DEMO_MODE) {
-    // demo は config 不要、setup パネルも隠す
-    if (setupPanel) setupPanel.hidden = true;
-    if (setupToggle) setupToggle.hidden = true;
+    // demo は config 不要だが、setup へ誘導するため panel と歯車は残す。
+    wireSetupPanel();
+    wireCopyButtons();
+    wireHero();
+    renderSetupCurrent();
+    refreshWizardSteps();
     await bootDemo();
     return;
   }
@@ -108,6 +121,17 @@ const escapeHtml = s => String(s).replace(/[&<>"']/g, ch =>
 async function bootDemo() {
   const banner = $("demo-banner");
   if (banner) banner.hidden = false;
+  // demo banner の「安全に接続する」CTA: 押されたら setup を開く + scroll
+  const demoConnectCta = $("demo-connect-cta");
+  if (demoConnectCta) {
+    demoConnectCta.addEventListener("click", () => {
+      openSetupPanel();
+      requestAnimationFrame(() => {
+        setupPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+        setTimeout(() => setupClientInput?.focus(), 300);
+      });
+    });
+  }
   authStatus.textContent = "demo: 接続なし";
   connectBtn.hidden = true;
   logoutBtn.hidden  = true;

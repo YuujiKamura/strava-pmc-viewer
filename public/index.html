@@ -18,8 +18,14 @@
   </header>
 
   <div id="demo-banner" class="demo-banner" hidden>
-    <strong>Demo mode</strong>: yuuji の 1785 件をローカル読込中、OAuth スキップ
-    <span id="demo-banner-detail"></span>
+    <div class="demo-banner-row">
+      <div>
+        <strong>これはデモです</strong>: yuuji の 13 年分の走行データで動きを試せます<span id="demo-banner-detail"></span>。
+      </div>
+      <div>
+        <button id="demo-connect-cta" class="btn btn-primary" type="button">自分のデータで見たい → 安全に接続する</button>
+      </div>
+    </div>
   </div>
 
   <!-- 未認証 landing: hero + why-worker (上部)、setup-panel は下に隠す -->
@@ -29,7 +35,7 @@
       <h2 class="hero-title">Strava 年度別分析</h2>
       <p class="hero-tag">No Server, Total Privacy.</p>
       <div class="hero-cta-wrap">
-        <button id="hero-start" class="btn btn-primary btn-lg" type="button">Strava と接続</button>
+        <button id="hero-start" class="btn btn-primary btn-lg" type="button">安全に接続する</button>
         <button id="hero-connect" class="btn btn-primary btn-lg" type="button" hidden>Strava と接続</button>
       </div>
     </section>
@@ -41,9 +47,8 @@
 
       <!-- 3 ステップ ロードマップ: 番号を背景に巨大化、ミニマル -->
       <p class="setup-lead">
-        運営サーバーを介さない、プライバシー特化型の年度別分析ツール。
-        以下 3 ステップで、あなただけの分析環境がデプロイされます。
-        <a href="#worker-tooltip" class="info-link" title="クリックすると下に詳細">なぜ Worker が要るか</a>
+        <strong>あなたの鍵を、開発者に預けないために。</strong>
+        Strava と通信する「あなた専用のトンネル (Cloudflare Worker)」を、以下 3 ステップで掘ります。
       </p>
       <ol class="roadmap" aria-label="セットアップの流れ">
         <li class="roadmap-step" data-step="1">
@@ -124,13 +129,12 @@ wrangler deploy</code></pre>
         </div>
       </div>
 
-      <!-- 「なぜ Worker か」は最下部に格下げ、フォーム入力時の安心材料として -->
+      <!-- 補足: 「なぜトンネルを掘るのか」をフォーム下に小さく -->
       <aside id="worker-tooltip" class="setup-footnote">
         <p>
           <strong>※ 開発者を含む第三者が、あなたの走行データや秘密鍵に触れる経路は物理的に存在しません。</strong><br>
-          Strava API は <code>Client Secret</code> を要求するため、ブラウザに置けません
-          (公開 = 漏洩)。よって visitor 自身の Cloudflare Worker に Secret を置く構成にしてあります。
-          データ経路: <code>Strava ↔ あなたの Worker ↔ あなたのブラウザ</code>。
+          データはこのトンネル内だけを通ります: <code>Strava ↔ あなたの Worker ↔ あなたのブラウザ</code>。
+          Strava の Client Secret はブラウザに置けない (公開 = 漏洩) ので、あなただけが触れる中継器に置きます。
         </p>
       </aside>
     </div>
