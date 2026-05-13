@@ -22,7 +22,7 @@
   <main class="shell" id="auth-shell" hidden>
     <section class="hero hero-minimal" data-state="unconfigured">
       <h2 class="hero-title">Strava Annual Fitness &amp; Freshness</h2>
-      <p class="hero-tag">年度別のコンディション推移を可視化します。</p>
+      <p class="hero-tag">年度別のコンディション推移を可視化するセルフホスト型ツール。<strong>コードは AI 生成</strong>。</p>
       <div class="hero-cta-wrap">
         <button id="hero-start" class="btn btn-primary btn-lg" type="button">Setup Guide</button>
         <button id="hero-connect" class="btn btn-primary btn-lg" type="button" hidden>Strava と接続</button>
@@ -30,10 +30,12 @@
       <p class="hero-assure">動作には visitor 自身の Strava App + Cloudflare Worker の構築が必要です。</p>
       <p class="hero-trust">
         全ソース <strong>MIT License</strong> で公開 ──
-        <a href="https://github.com/YuujiKamura/strava-pmc-viewer" target="_blank" rel="noopener">リポ全体を読む</a>
+        <a href="https://github.com/YuujiKamura/strava-pmc-viewer" target="_blank" rel="noopener">リポ全体</a>
         ／
         <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js" target="_blank" rel="noopener">Proxy Worker (約 100 行)</a>。
-        導入前のコード査読を推奨。
+        <br>
+        AI 生成コードなので、<strong>導入前に手元の AI エージェント (ChatGPT / Claude 等)
+        に読ませて、意図しない外部送信や挙動がないか検証することを推奨</strong>。
       </p>
     </section>
 
@@ -61,9 +63,8 @@
     <div class="setup-body">
 
       <p class="setup-lead">
-        走行データや認証情報は、あなたのブラウザと、あなた自身が用意する中継 (Cloudflare
-        Worker) の間だけでやり取りされます。開発者を含め、第三者があなたのデータに触れる
-        経路は構造上ありません。
+        走行データと認証情報は、あなたのブラウザとあなた自身の Cloudflare Worker の間
+        だけでやり取りされます。開発者側のサーバを通る経路はありません。
       </p>
       <details class="setup-why">
         <summary>よくある質問</summary>
