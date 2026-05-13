@@ -127,6 +127,16 @@ body {
   color: var(--fg);
   line-height: 1.6;
 }
+/* ── hero-source scope (想定 user の境界線) ──────── */
+.hero-source-scope {
+  margin: 0.6rem 0 0;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--line);
+  font-size: 0.76rem;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
 /* ── Header GitHub icon ────────────────────────────── */
 .hdr-github {
   display: inline-flex;
