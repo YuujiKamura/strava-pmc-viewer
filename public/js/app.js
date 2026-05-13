@@ -911,19 +911,17 @@ async function runEnrich(year, acts, { background = false } = {}) {
   }
 }
 
-/** 残 API 数フラグメント。本ツールは全 GET なので Read (読み取り) 制限が支配的。
- *  公式の Read 値があれば「読み取り N/M」を主表示、Overall (総合) を括弧で添える。
- *  Strava snapshot が取れない時は self-count を読み取り扱いで表示。 */
+/** 残 API 数フラグメント。Strava は Overall (GET+POST) と Read (GET のみ) を別 bucket
+ *  で管理しているが、user が叩けるのは min(両方) で、厳しい方だけ知れば十分。
+ *  両方の残数の min を 15分 / 日 それぞれで取って 1 行表示する。 */
 function apiRemainText() {
   const r = getRateBudget();
-  const read = r.read;
-  if (!read) return "";
-  const main = `読み取り 残 ${read.fifteenRemaining}/15分・${read.dailyRemaining}/日`;
-  const overall = r.overall
-    ? ` (総合 ${r.overall.fifteenRemaining}/15分・${r.overall.dailyRemaining}/日)`
-    : "";
+  const buckets = [r.read, r.overall].filter(b => b);
+  if (!buckets.length) return "";
+  const min15  = Math.min(...buckets.map(b => b.fifteenRemaining));
+  const minDay = Math.min(...buckets.map(b => b.dailyRemaining));
   const tag = r.source === "strava" ? "" : " ※本ツールでのカウント";
-  return `${main}${overall}${tag}`;
+  return `残 API ${min15}/15分・${minDay}/日${tag}`;
 }
 
 /** enrich ボタンの状態を現在年の未取得件数に合わせて更新 (押す前に見えるラベル) */
