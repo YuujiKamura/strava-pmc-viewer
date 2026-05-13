@@ -143,7 +143,9 @@ export async function fetchActivities({ token, after, before, onProgress }) {
     if (before != null) url.searchParams.set("before", Math.floor(before));
 
     logApiCall();
-    const r = await fetch(url, { headers });
+    // cache: "no-store" でブラウザの HTTP キャッシュを完全 bypass。
+    // 「最新に更新」直後に今日のアクティビティが反映されない bug の対策。
+    const r = await fetch(url, { headers, cache: "no-store" });
     if (r.status === 429) {
       const retry = parseInt(r.headers.get("Retry-After") || "60", 10);
       onProgress?.(`rate limit、${retry}秒待機`);
@@ -164,7 +166,7 @@ export async function fetchActivities({ token, after, before, onProgress }) {
 export async function fetchActivityDetail({ token, id }) {
   const headers = await authHeader(token);
   logApiCall();
-  const r = await fetch(`${API}/activities/${id}`, { headers });
+  const r = await fetch(`${API}/activities/${id}`, { headers, cache: "no-store" });
   if (r.status === 429) throw new Error("rate_limit");
   if (!r.ok) throw new Error(`detail fetch failed: ${r.status}`);
   return await r.json();
