@@ -22,17 +22,34 @@ const canvas      = $("pmc-chart");
 const mCtl  = $("m-ctl"), mAtl = $("m-atl"), mTsb = $("m-tsb"), mRamp = $("m-ramp");
 const cardTsb = $("card-tsb");
 
+// ── demo mode detection ─────────────────────────────────────────────────
+// `?demo=1` か `#demo` で OAuth スキップ → ./demo-data.json をローカル読込
+const DEMO_MODE = (() => {
+  try {
+    const url = new URL(location.href);
+    if (url.searchParams.get("demo") === "1") return true;
+    if ((url.hash || "").toLowerCase().includes("demo")) return true;
+  } catch { /* noop */ }
+  return false;
+})();
+
 // ── state ────────────────────────────────────────────────────────────────
 let token = null;
 let chart = null;
 let activitiesCache = new Map();  // year → Array<Activity>
 let currentYear = null;
+let demoActivities = null;        // demo mode: 全件 (year filter 前) cache
+let demoYearsAvailable = null;    // demo mode: data 範囲から決まる年度配列
 
 const escapeHtml = s => String(s).replace(/[&<>"']/g, ch =>
   ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch]));
 
 // ── boot ────────────────────────────────────────────────────────────────
 (async function boot() {
+  if (DEMO_MODE) {
+    await bootDemo();
+    return;
+  }
   try {
     const fromCallback = await auth.consumeAuthCodeIfPresent();
     token = fromCallback || auth.loadToken();
@@ -42,6 +59,61 @@ const escapeHtml = s => String(s).replace(/[&<>"']/g, ch =>
   if (token) onConnected();
   else       onDisconnected();
 })();
+
+async function bootDemo() {
+  const banner = $("demo-banner");
+  if (banner) banner.hidden = false;
+  authStatus.textContent = "demo: 接続なし";
+  connectBtn.hidden = true;
+  logoutBtn.hidden  = true;
+  authShell.hidden  = true;
+  dashShell.hidden  = false;
+
+  try {
+    const res = await fetch("./demo-data.json", { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    demoActivities = Array.isArray(data) ? data : (Array.isArray(data.activities) ? data.activities : null);
+    if (!demoActivities) throw new Error("demo-data.json: 配列または {activities:[…]} 形式が必要");
+  } catch (e) {
+    showDemoLoadError(e);
+    return;
+  }
+
+  demoYearsAvailable = computeDemoYears(demoActivities);
+  const detail = $("demo-banner-detail");
+  if (detail) {
+    const n = demoActivities.length;
+    const yrs = demoYearsAvailable.length
+      ? `${demoYearsAvailable[demoYearsAvailable.length - 1]}〜${demoYearsAvailable[0]}`
+      : "—";
+    detail.textContent = ` (${n} 件, ${yrs})`;
+  }
+
+  renderYearButtons();
+  const initial = demoYearsAvailable.includes(new Date().getFullYear())
+    ? new Date().getFullYear()
+    : demoYearsAvailable[0] ?? new Date().getFullYear();
+  selectYear(initial);
+}
+
+function computeDemoYears(acts) {
+  const years = new Set();
+  for (const a of acts) {
+    if (!a.start_date) continue;
+    const y = Number(a.start_date.slice(0, 4));
+    if (Number.isFinite(y)) years.add(y);
+  }
+  return Array.from(years).sort((a, b) => b - a);  // 新しい順
+}
+
+function showDemoLoadError(e) {
+  const msg = `demo-data.json の読み込みに失敗: ${e && e.message ? e.message : e}. ` +
+              `\`bin/rails runner scripts/export_demo_json.rb\` で生成してください。`;
+  fetchStatus.textContent = msg;
+  if (yearButtons) yearButtons.innerHTML = "";
+  console.error(msg);
+}
 
 function onConnected() {
   authStatus.textContent = `接続済${token.athlete ? ` (${token.athlete.firstname || ""} ${token.athlete.lastname || ""})` : ""}`;
@@ -73,10 +145,18 @@ logoutBtn.addEventListener("click", () => {
 
 // ── year selection ──────────────────────────────────────────────────────
 function renderYearButtons() {
-  const thisYear = new Date().getFullYear();
-  yearButtons.innerHTML = "";
-  // 過去 8 年分を出す (Strava で取得可能な範囲、user が必要に応じて選ぶ)
-  for (let y = thisYear; y >= thisYear - 7; y--) {
+  while (yearButtons.firstChild) yearButtons.removeChild(yearButtons.firstChild);
+  let years;
+  if (DEMO_MODE && demoYearsAvailable && demoYearsAvailable.length) {
+    // demo mode: data 範囲の全年度を出す
+    years = demoYearsAvailable.slice();
+  } else {
+    // 通常: 過去 8 年分 (Strava で取得可能な範囲)
+    const thisYear = new Date().getFullYear();
+    years = [];
+    for (let y = thisYear; y >= thisYear - 7; y--) years.push(y);
+  }
+  for (const y of years) {
     const btn = document.createElement("button");
     btn.textContent = y;
     btn.dataset.year = y;
@@ -91,12 +171,13 @@ async function selectYear(year) {
     b.classList.toggle("active", Number(b.dataset.year) === year);
     b.disabled = true;
   }
-  enrichBtn.hidden = false;
-  fetchStatus.textContent = "取得中…";
+  // demo mode は Strava API を叩かないので enrich は不可
+  enrichBtn.hidden = DEMO_MODE ? true : false;
+  fetchStatus.textContent = DEMO_MODE ? "読込中…" : "取得中…";
 
   try {
-    const acts = await loadYear(year);
-    fetchStatus.textContent = `${acts.length} 件 (${year}年)`;
+    const acts = DEMO_MODE ? await loadYearDemo(year) : await loadYear(year);
+    fetchStatus.textContent = `${acts.length} 件 (${year}年)${DEMO_MODE ? " · demo" : ""}`;
     render(year, acts);
   } catch (e) {
     fetchStatus.textContent = "エラー";
@@ -104,6 +185,21 @@ async function selectYear(year) {
   } finally {
     for (const b of yearButtons.querySelectorAll("button")) b.disabled = false;
   }
+}
+
+// demo mode: 全件 cache を 年 で filter (前年11月〜当年末で warmup 込み)
+async function loadYearDemo(year) {
+  if (activitiesCache.has(year)) return activitiesCache.get(year);
+  if (!demoActivities) throw new Error("demo データ未ロード");
+  const startMs = Date.UTC(year - 1, 10, 1);                  // 前年11月1日
+  const endMs   = Date.UTC(year, 11, 31, 23, 59, 59);         // 当年12月31日
+  const acts = demoActivities.filter(a => {
+    if (!a.start_date) return false;
+    const t = Date.parse(a.start_date);
+    return Number.isFinite(t) && t >= startMs && t <= endMs;
+  });
+  activitiesCache.set(year, acts);
+  return acts;
 }
 
 async function loadYear(year) {

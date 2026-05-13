@@ -1,2 +1,7 @@
-node_modules/\n.wrangler/\n.dev.vars\n
+node_modules/
+.wrangler/
+.dev.vars
 .omc/
+
+# Demo data exported from local strava-collector (personal data — never commit)
+public/demo-data.json
