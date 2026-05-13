@@ -210,6 +210,7 @@ let token = null;
 let chart = null;
 let activitiesCache = new Map();  // year → Array<Activity>
 let currentYear = null;
+let enrichAborted = false;        // 背景 enrich 中に user が別年クリックした時の停止 flag
 let currentPoints = null;         // 「現在時刻に戻る」用の最新 points 参照
 let currentByDate = null;         // 同じく、day-detail panel 再描画用の byDate Map
 let currentTodayIdx = 0;          // 現在年での「今日」相当の idx
@@ -565,6 +566,9 @@ function renderYearButtons() {
 }
 
 async function selectYear(year, { force = false } = {}) {
+  // 別年に切り替えた瞬間、走っている背景 enrich は停止させる (旧年の acts を
+  // 書き換え続けないよう抜ける、cache への部分 save は finally で行われる)
+  enrichAborted = true;
   currentYear = year;
   for (const b of yearButtons.querySelectorAll("button")) {
     b.classList.toggle("active", Number(b.dataset.year) === year);
@@ -596,6 +600,11 @@ async function selectYear(year, { force = false } = {}) {
     for (const b of yearButtons.querySelectorAll("button")) {
       b.classList.toggle("active", Number(b.dataset.year) === year);
     }
+    // 背景 enrich を非 await で起動 (画面操作を block しない)。当年で未 enrich
+    // な activity が残っていれば 1.6 秒間隔で詳細値を順次補完、suffer_score /
+    // NP が揃って TSS が Strava 公式に近づく。user 操作は不要、別年クリックで
+    // 自動停止 (selectYear 先頭の enrichAborted = true)。
+    runEnrichBackground(year, acts);
   } catch (e) {
     fetchStatus.textContent = "エラー";
     showError(e.message);
@@ -844,35 +853,67 @@ function renderDay(idx, points, byDate) {
 }
 
 // ── enrich (詳細値取得) ─────────────────────────────────────────────────
+// 一覧 API には suffer_score (= Strava 公式 Relative Effort) と NP が含まれない、
+// 個別 activity API で 1 件ずつ取得して埋めると tssFor の優先順位が上位に切替り
+// TSS が Strava 公式値に揃う。1 req/件、1.6 秒間隔、年 100〜300 件で 30〜45 分。
+
+async function runEnrich(year, acts, { background = false } = {}) {
+  const needs = acts.filter(a => a.suffer_score == null && a.weighted_average_watts == null);
+  if (needs.length === 0) {
+    if (!background) fetchStatus.textContent = "詳細値はすべて取得済";
+    return;
+  }
+  enrichAborted = false;
+  if (!background) enrichBtn.disabled = true;
+  const athId = token?.athlete?.id;
+  let done = 0;
+  try {
+    for (const a of needs) {
+      if (enrichAborted || currentYear !== year) break;
+      try {
+        const d = await fetchActivityDetail({ token, id: a.id });
+        Object.assign(a, {
+          suffer_score: d.suffer_score,
+          weighted_average_watts: d.weighted_average_watts,
+          average_heartrate: d.average_heartrate,
+          moving_time: d.moving_time,
+        });
+        done++;
+        fetchStatus.textContent = background
+          ? `精度向上中 ${done}/${needs.length} (背景で進行)`
+          : `詳細取得 ${done}/${needs.length}`;
+        await new Promise(r => setTimeout(r, 1600));
+        // 10 件ごとに cache 保存して中断耐性 (タブ閉じても次回続きから)
+        if (done % 10 === 0) cache.saveYearCache(athId, year, acts);
+      } catch (e) {
+        if (e.message === "rate_limit") {
+          fetchStatus.textContent = "rate limit、60秒待機";
+          await new Promise(r => setTimeout(r, 60000));
+        } else {
+          console.error(e);
+        }
+      }
+    }
+  } finally {
+    // 完了・中断いずれでも cache へ反映、次回起動時に積み残しが見える
+    if (done > 0) cache.saveYearCache(athId, year, acts);
+    if (!background) enrichBtn.disabled = false;
+    if (currentYear === year && done > 0) render(currentYear, acts);
+  }
+}
+
+/** 背景進行 (await しない、画面操作を block しない、別年クリックで自動停止) */
+function runEnrichBackground(year, acts) {
+  // すでに enrich 不要 (= 全件取得済) なら何もしない
+  const needs = acts.filter(a => a.suffer_score == null && a.weighted_average_watts == null);
+  if (needs.length === 0) return;
+  runEnrich(year, acts, { background: true }).catch(e => console.warn("background enrich error:", e));
+}
+
 enrichBtn.addEventListener("click", async () => {
   if (!currentYear) return;
   const acts = activitiesCache.get(currentYear) || [];
-  const needs = acts.filter(a => a.suffer_score == null && a.weighted_average_watts == null);
-  if (needs.length === 0) {
-    fetchStatus.textContent = "詳細値はすべて取得済";
-    return;
-  }
-  enrichBtn.disabled = true;
-  let done = 0;
-  for (const a of needs) {
-    try {
-      const d = await fetchActivityDetail({ token, id: a.id });
-      Object.assign(a, {
-        suffer_score: d.suffer_score,
-        weighted_average_watts: d.weighted_average_watts,
-        average_heartrate: d.average_heartrate,
-        moving_time: d.moving_time,
-      });
-      done++;
-      fetchStatus.textContent = `詳細取得 ${done}/${needs.length}`;
-      await new Promise(r => setTimeout(r, 1600));
-    } catch (e) {
-      if (e.message === "rate_limit") { fetchStatus.textContent = "rate limit、60秒待機"; await new Promise(r => setTimeout(r, 60000)); }
-      else { console.error(e); }
-    }
-  }
-  enrichBtn.disabled = false;
-  render(currentYear, acts);
+  await runEnrich(currentYear, acts);
 });
 
 function showError(msg) {
