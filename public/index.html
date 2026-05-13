@@ -22,23 +22,22 @@
   <main class="shell" id="auth-shell" hidden>
     <section class="hero hero-minimal" data-state="unconfigured">
       <h2 class="hero-title">Strava Annual Fitness &amp; Freshness</h2>
-      <p class="hero-tag">年度別の推移を可視化するブラウザ型ツール。Strava の認証鍵を秘匿しつつ通信するため、中継 (Proxy) を visitor 側で 1 つ用意する必要があります。</p>
+      <p class="hero-tag">Strava の走行データを年度別に可視化するセルフホスト型ビューワー。認証鍵 (Secret) を自分の管理下に置くため、自分の Cloudflare Worker を中継として使います。</p>
 
       <section class="hero-source" aria-labelledby="hero-source-title">
-        <h3 id="hero-source-title" class="hero-source-title">Trade-off &amp; Verification</h3>
+        <h3 id="hero-source-title" class="hero-source-title">Verification First</h3>
         <p class="hero-source-lead">
-          AI 生成コード、MIT License。Strava の認証鍵は <strong>本来ローカルに置くもの</strong>
-          ですが、ブラウザ型ツールでは秘匿できないため、本実装では visitor 自身の Cloudflare
-          Worker を中継に使う ── あくまで「他人のサーバに預けるよりはマシ」という妥協で、
-          「クラウドに鍵を預けるのが正解」ではありません。導入前に
-          <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js" target="_blank" rel="noopener">Proxy Worker</a>
-          を AI に査読させ、認証鍵が Strava 以外に送信されていないかを確認推奨。
-          抵抗があれば中止、または fork して <strong>Local Proxy 方式</strong> (自分の PC で中継を立てる) に改造を。
+          AI 生成コード、MIT License。デプロイ前に Proxy Worker (約 100 行) を
+          AI に査読させてからの導入を推奨します。
         </p>
+        <ul class="hero-source-bullets">
+          <li><strong>事実</strong>: 認証鍵は visitor 自身の Cloudflare 環境変数 (Secrets) にのみ保存されます。</li>
+          <li><strong>検証項目</strong>: Secret が Strava 以外のドメインへ送信されていないか。</li>
+        </ul>
         <p class="hero-source-linkline">
           <a href="https://github.com/YuujiKamura/strava-pmc-viewer" target="_blank" rel="noopener">Logic Repository</a>
           ／
-          <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js" target="_blank" rel="noopener">Proxy Worker (約 100 行)</a>
+          <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js" target="_blank" rel="noopener">Proxy Worker</a>
         </p>
       </section>
 
