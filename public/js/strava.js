@@ -13,14 +13,35 @@ const API = "https://www.strava.com/api/v3";
 // はカウント漏れ) だが、本ツールが暴走しない上限としては機能する。
 export const STRAVA_LIMIT_15MIN = 100;
 export const STRAVA_LIMIT_DAY   = 1000;
-const apiCallLog = [];  // ms epoch の配列
+const API_LOG_KEY = "strava_pmc_api_log_v1";
+
+// localStorage から復元して memory 配列に展開 (reload や別 tab 跨ぎでも今日分が
+// 残るように)。同 domain の別 tab とは同期しないが (storage event 未対応)、
+// reload で消える問題は解消する。
+function loadApiCallLog() {
+  try {
+    const raw = localStorage.getItem(API_LOG_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    const cutoff = Date.now() - 86400000;
+    return arr.filter(t => Number.isFinite(t) && t >= cutoff);
+  } catch { return []; }
+}
+const apiCallLog = loadApiCallLog();
+
+function saveApiCallLog() {
+  try { localStorage.setItem(API_LOG_KEY, JSON.stringify(apiCallLog)); }
+  catch { /* quota exceeded 等は無視、memory log は機能継続 */ }
+}
 
 function logApiCall() {
   const now = Date.now();
   apiCallLog.push(now);
-  // 24h より古い entry は捨てる (memory リーク防止)
+  // 24h より古い entry は捨てる (memory リーク防止 + localStorage 容量抑制)
   const cutoff = now - 86400000;
   while (apiCallLog.length && apiCallLog[0] < cutoff) apiCallLog.shift();
+  saveApiCallLog();
 }
 
 /** 直近 15min / 24h で叩いた回数から残り API 数を計算して返す。 */
