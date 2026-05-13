@@ -581,10 +581,13 @@ async function selectYear(year, { force = false } = {}) {
 
   try {
     const acts = await loadYear(year, { force });
-    // 過去年の cache を warmup activities として merge: CTL (τ=42日) は 60 日 warmup
-    // では e^{-60/42}≈0.24 の初期値依存が残り、Strava 公式 (全履歴) と乖離する。
-    // 過去年を一度取得すれば cache が積まれて warmup が効くので、user が過去年を
-    // クリックしていくほど CTL が公式値に収束する。
+    // 当年表示時、CTL の warmup が 60 日では公式値と乖離するので、過去 3 年分
+    // の cache を自動で確保 (cache 不在の年だけ API で fetch、user 操作不要)。
+    // 過去年表示の時は acts 自体に warmup 60 日が含まれていれば PMC は安定する
+    // ので追加 fetch しない。
+    if (isCurrentYear) {
+      await ensureWarmupCache(year);
+    }
     const warmupActs = collectWarmupActivities(year);
     const mergedForPmc = warmupActs.length ? dedupActivities([...warmupActs, ...acts]) : acts;
     render(year, mergedForPmc, acts);
@@ -648,6 +651,38 @@ function collectWarmupActivities(year) {
     if (c && Array.isArray(c.activities)) out.push(...c.activities);
   }
   return out;
+}
+
+/** 過去 3 年で cache 不在の年を Strava から自動取得して localStorage に保存。
+ *  当年表示時に呼んで CTL warmup を 1095 日に伸ばし、Strava 公式に収束させる。
+ *  user 操作なし、機械的に走る。Strava rate limit は 1 年 ≈ 1-2 calls なので
+ *  最大 6-8 calls の追加、100 calls/15min 制限内で十分。 */
+async function ensureWarmupCache(year) {
+  const athId = token?.athlete?.id;
+  const missing = [];
+  for (let y = year - 1; y >= year - 3; y--) {
+    if (!cache.loadYearCache(athId, y)) missing.push(y);
+  }
+  if (!missing.length) return;
+  for (const y of missing) {
+    fetchStatus.textContent = `精度向上のため ${y}年データを取得中…`;
+    const start = new Date(Date.UTC(y - 1, 10, 1));
+    const end   = new Date(Date.UTC(y, 11, 31, 23, 59, 59));
+    try {
+      const acts = await fetchActivities({
+        token,
+        after:  Math.floor(start.getTime() / 1000),
+        before: Math.floor(end.getTime() / 1000),
+        onProgress: msg => fetchStatus.textContent = `${y}年 warmup: ${msg}`,
+      });
+      activitiesCache.set(y, acts);
+      cache.saveYearCache(athId, y, acts);
+      token = auth.loadToken() || token;
+    } catch (e) {
+      // warmup 取得失敗は致命的でない、当年表示は続行 (60 日 warmup で fallback)
+      console.warn(`warmup ${y} 取得失敗:`, e?.message);
+    }
+  }
 }
 
 /** activity.id でユニーク化 (warmup と loadYear の重複期間を吸収)。 */
