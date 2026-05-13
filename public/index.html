@@ -32,34 +32,38 @@
   <!-- 未認証 landing: 最小ヒーロー (title + tagline + button だけ) -->
   <main class="shell" id="auth-shell" hidden>
     <section class="hero hero-minimal" data-state="unconfigured">
-      <h2 class="hero-title">Strava 年度別分析</h2>
-      <p class="hero-tag">No Server, Total Privacy.</p>
+      <h2 class="hero-title">あなたの 10 年分を、<br>1 秒で振り返る。</h2>
+      <p class="hero-tag">Strava の記録を、1 年ごとのグラフに。</p>
       <div class="hero-cta-wrap">
-        <button id="hero-start" class="btn btn-primary btn-lg" type="button">安全に接続する</button>
+        <button id="hero-start" class="btn btn-primary btn-lg" type="button">自分のデータで試す</button>
         <button id="hero-connect" class="btn btn-primary btn-lg" type="button" hidden>Strava と接続</button>
       </div>
+      <p class="hero-assure">データは誰にも送信されません。安心してください。</p>
     </section>
   </main>
 
   <details id="setup-panel" class="setup-panel">
-    <summary><span class="summary-text">セットアップ ガイド (3 ステップ)</span></summary>
+    <summary><span class="summary-text">安心のための 3 つの準備</span></summary>
     <div class="setup-body">
 
-      <!-- 3 ステップ ロードマップ: 番号を背景に巨大化、ミニマル -->
+      <!-- 短い納得文 + 3 ステップ -->
       <p class="setup-lead">
-        <strong>あなたの鍵を、開発者に預けないために。</strong>
-        Strava と通信する「あなた専用のトンネル (Cloudflare Worker)」を、以下 3 ステップで掘ります。
+        あなたの記録は <strong>Strava という大きな倉庫</strong> にあります。そこから記録を借りてくる
+        <strong>「あなた専用の通訳さん」</strong> を、3 つの準備で用意します。
+        通訳さんがいると、走った記録は <strong>あなたと通訳さんの間だけ</strong> で完結し、開発者の手元には
+        一切流れません。
       </p>
       <ol class="roadmap" aria-label="セットアップの流れ">
         <li class="roadmap-step" data-step="1">
           <div class="roadmap-num">1</div>
           <div class="roadmap-body">
-            <div class="roadmap-role">Register</div>
-            <div class="roadmap-title">Strava API で鍵を取得</div>
+            <div class="roadmap-role">鍵を借りる</div>
+            <div class="roadmap-title">Strava で「貸し出し窓口」に申し込む</div>
             <div class="roadmap-desc">
               <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener">strava.com/settings/api</a>
-              で App 作成。Callback Domain に
-              <code id="setup-host-hint">—</code> を入れて Client ID と Client Secret を控える。
+              の「Create &amp; Manage Your App」を押すと、申込画面が出ます。
+              Authorization Callback Domain には <code id="setup-host-hint">—</code> を入れて、
+              発行された <strong>Client ID</strong> と <strong>Client Secret</strong> (鍵 2 本) を控えてください。
             </div>
           </div>
         </li>
@@ -67,11 +71,11 @@
         <li class="roadmap-step" data-step="2">
           <div class="roadmap-num">2</div>
           <div class="roadmap-body">
-            <div class="roadmap-role">Deploy</div>
-            <div class="roadmap-title">Cloudflare Worker をデプロイ</div>
+            <div class="roadmap-role">通訳を雇う</div>
+            <div class="roadmap-title">あなた専用の通訳さん (Worker) を用意する</div>
             <div class="roadmap-desc">
-              下のコマンドを実行 → 表示された
-              <code>xxxx.workers.dev</code> の URL を控える。
+              下のコマンドを 1 行ずつ実行すると、Cloudflare 上にあなただけの通訳さんが立ちます。
+              最後に表示される <code>xxxx.workers.dev</code> の URL を控えてください。
             </div>
             <div class="codeblock" data-lang="bash">
               <button class="codeblock-copy btn-sm" type="button" data-copy-target="code-wrangler">全コピー</button>
@@ -95,11 +99,12 @@ wrangler deploy</code></pre>
         <li class="roadmap-step" data-step="3">
           <div class="roadmap-num">3</div>
           <div class="roadmap-body">
-            <div class="roadmap-role">Connect</div>
-            <div class="roadmap-title">URL を貼り付けて完了</div>
+            <div class="roadmap-role">画面に取り付ける</div>
+            <div class="roadmap-title">この画面に「鍵」と「通訳の住所」を教える</div>
             <div class="roadmap-desc">
-              下のフォームに Client ID と Worker URL を入れて「保存」、
-              そのまま「Strava と接続」で年度別チャートへ。
+              下のフォームに、<strong>1 で控えた Client ID</strong> と
+              <strong>2 で控えた Worker URL</strong> を入れて「保存」。あとはヘッダの
+              「Strava と接続」を押すだけで、あなたの走った記録が年度別グラフになって出てきます。
             </div>
           </div>
         </li>
@@ -142,12 +147,11 @@ wrangler deploy</code></pre>
         </div>
       </div>
 
-      <!-- 補足: 「なぜトンネルを掘るのか」をフォーム下に小さく -->
+      <!-- 補足 -->
       <aside id="worker-tooltip" class="setup-footnote">
         <p>
-          <strong>※ 開発者を含む第三者が、あなたの走行データや秘密鍵に触れる経路は物理的に存在しません。</strong><br>
-          データはこのトンネル内だけを通ります: <code>Strava ↔ あなたの Worker ↔ あなたのブラウザ</code>。
-          Strava の Client Secret はブラウザに置けない (公開 = 漏洩) ので、あなただけが触れる中継器に置きます。
+          <strong>※ 開発者を含む第三者が、あなたの走った記録や鍵に触れる経路は物理的に存在しません。</strong><br>
+          記録はこの 3 者の間だけを通ります: <code>Strava の倉庫 ↔ あなたの通訳 ↔ この画面</code>。
         </p>
       </aside>
     </div>
@@ -155,21 +159,21 @@ wrangler deploy</code></pre>
 
 
   <main class="shell" id="dash-shell" hidden>
-    <!-- データフロー図: あなたのデータがどこを通り、どこに留まるかの一枚絵 -->
+    <!-- データの旅路: 倉庫 → 通訳さん → この画面 -->
     <div class="data-flow" aria-label="データの流れ">
       <div class="flow-node node-strava">
-        <span class="flow-label">Strava</span>
-        <span class="flow-sub">アクティビティ取得元</span>
+        <span class="flow-label">Strava の倉庫</span>
+        <span class="flow-sub">あなたの記録の保管庫</span>
       </div>
       <div class="flow-arrow" aria-hidden="true">→</div>
       <div class="flow-node node-worker">
-        <span class="flow-label">Your Worker</span>
-        <span class="flow-sub" id="flow-worker-sub">あなたの中継器</span>
+        <span class="flow-label">あなた専用の通訳</span>
+        <span class="flow-sub" id="flow-worker-sub">記録を借りる窓口役</span>
       </div>
       <div class="flow-arrow" aria-hidden="true">→</div>
       <div class="flow-node node-browser">
-        <span class="flow-label">Your Browser</span>
-        <span class="flow-sub"><strong>Local Only</strong> (localStorage)</span>
+        <span class="flow-label">この画面</span>
+        <span class="flow-sub"><strong>あなたのブラウザの中だけ</strong></span>
       </div>
     </div>
       <div class="card"><div class="label">CTL (Fitness)</div><div class="value" id="m-ctl">—</div></div>

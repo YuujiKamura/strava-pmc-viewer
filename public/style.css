@@ -175,11 +175,13 @@ body {
 }
 
 /* ── Roadmap (3-step visualizer) ─────────────────────── */
+/* 上から下へ縦並び (1 スクロールで 1 ステップずつ納得) */
 .roadmap {
   list-style: none; padding: 0; margin: 0 0 1.5rem;
-  display: flex; flex-wrap: wrap; gap: 0.5rem;
+  display: flex; flex-direction: column; gap: 0.75rem;
   align-items: stretch;
 }
+.roadmap > .roadmap-arrow { display: none; }  /* 縦並びでは矢印不要、background number で順序示す */
 .roadmap-step {
   flex: 1 1 240px; min-width: 220px;
   position: relative;
