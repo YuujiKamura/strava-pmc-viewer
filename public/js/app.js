@@ -600,11 +600,8 @@ async function selectYear(year, { force = false } = {}) {
     for (const b of yearButtons.querySelectorAll("button")) {
       b.classList.toggle("active", Number(b.dataset.year) === year);
     }
-    // 背景 enrich を非 await で起動 (画面操作を block しない)。当年で未 enrich
-    // な activity が残っていれば 1.6 秒間隔で詳細値を順次補完、suffer_score /
-    // NP が揃って TSS が Strava 公式に近づく。user 操作は不要、別年クリックで
-    // 自動停止 (selectYear 先頭の enrichAborted = true)。
-    runEnrichBackground(year, acts);
+    // 「公式精度に揃える」ボタンの状態を更新 (残件数と所要時間をラベルに出す)
+    updateEnrichBtn();
   } catch (e) {
     fetchStatus.textContent = "エラー";
     showError(e.message);
@@ -908,18 +905,30 @@ async function runEnrich(year, acts, { background = false } = {}) {
   }
 }
 
-/** 背景進行 (await しない、画面操作を block しない、別年クリックで自動停止) */
-function runEnrichBackground(year, acts) {
-  // すでに enrich 不要 (= 全件取得済) なら何もしない
+/** enrich ボタンの状態を現在年の未取得件数に合わせて更新 (押す前に見えるラベル) */
+function updateEnrichBtn() {
+  if (!currentYear) {
+    enrichBtn.textContent = "公式精度に揃える";
+    enrichBtn.disabled = true;
+    return;
+  }
+  const acts = activitiesCache.get(currentYear) || [];
   const needs = acts.filter(a => a.suffer_score == null && a.weighted_average_watts == null);
-  if (needs.length === 0) return;
-  runEnrich(year, acts, { background: true }).catch(e => console.warn("background enrich error:", e));
+  if (needs.length === 0) {
+    enrichBtn.textContent = `公式精度に揃え済み (${acts.length} 件)`;
+    enrichBtn.disabled = true;
+    return;
+  }
+  const mins = Math.ceil(needs.length * ENRICH_INTERVAL_MS / 60000);
+  enrichBtn.textContent = `公式精度に揃える (残 ${needs.length} 件 約${mins}分)`;
+  enrichBtn.disabled = false;
 }
 
 enrichBtn.addEventListener("click", async () => {
   if (!currentYear) return;
   const acts = activitiesCache.get(currentYear) || [];
   await runEnrich(currentYear, acts);
+  updateEnrichBtn();
 });
 
 function showError(msg) {
