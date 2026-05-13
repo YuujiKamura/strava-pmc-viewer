@@ -23,8 +23,9 @@
     <section class="hero hero-minimal" data-state="unconfigured">
       <h2 class="hero-title">Strava 年度別 Fitness &amp; Freshness</h2>
       <p class="hero-tag">
-        このアプリは、<strong>あなたのデータを外部に一切送信しません</strong>。
-        そのための初回設定 (Cloudflare Worker のデプロイ、約 10 分) が必要です。
+        走行データの保存先は、あなたのブラウザの localStorage と
+        あなた自身がデプロイした Cloudflare Worker (OAuth 中継用) のみ。
+        そのための初回設定が約 10 分必要です。
       </p>
       <div class="hero-cta-wrap">
         <button id="hero-start" class="btn btn-primary btn-lg" type="button">設定を始める</button>
