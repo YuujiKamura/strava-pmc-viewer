@@ -17,27 +17,28 @@
     </div>
   </header>
 
-  <details id="setup-panel" class="setup-panel">
-    <summary><span class="summary-text">設定を表示</span></summary>
+  <details id="setup-panel" class="setup-panel" open>
+    <summary><span class="summary-text">セットアップ ガイド</span></summary>
     <div class="setup-body">
 
-      <!-- なぜ Worker か (fold せず、最初に見える位置で説明) -->
+      <!-- なぜ Worker か (常時表示、fold しない) -->
       <section class="why-worker">
-        <h3 class="why-worker-title">なぜ「自分専用の中継器」を立ててもらうのか</h3>
+        <h3 class="why-worker-title">なぜ「自分専用の中継器」が要るのか</h3>
         <p>
-          Strava と通信するには <strong>Client Secret</strong>(秘密鍵)が必要です。
-          一般的なツールはこの鍵を <em>運営のサーバー</em> に置きます ── 言い換えると、
-          運営があなたの活動データを見ようと思えば見られる状態です。
+          Strava API を使うには <strong>Client Secret</strong> (秘密鍵) が必要です。
+          これを Web サービスの運営者サーバーに置く構成だと、運営者があなたの活動データに
+          アクセスできてしまいます。
         </p>
         <p>
-          このツールには運営サーバーがありません。あなた自身の Cloudflare アカウントに
-          小さな中継器 (Worker) を 10 分で設置していただき、そこにあなたの鍵を置きます。
-          データは
-          <strong>Strava ↔ あなたの Worker ↔ あなたのブラウザ</strong>
-          の間だけで完結し、<strong>このツールの開発者を含む第三者は一切介入できません</strong>。
+          このツールには運営サーバーがありません。代わりに、あなた自身の Cloudflare
+          アカウントに小さな中継プログラム (Worker) を設置していただきます。鍵はその
+          Worker 内にのみ存在し、データは
+          <strong>Strava ↔ あなたの Worker ↔ あなたのブラウザ</strong> の間だけで完結します。
+          開発者がデータに触れる経路は存在しません。
         </p>
         <p class="why-worker-tag">
-          ── 「年度比較したいけど、データを誰かに渡したくない」を両立させるための構成です。
+          API キーを他人に預けるのは抵抗があるが、詳細な分析はしたい人のための構成です。
+          セットアップに手間が要るのは、それと引き換えです。
         </p>
       </section>
 
@@ -139,19 +140,26 @@ wrangler deploy</code></pre>
   <main class="shell" id="auth-shell" hidden>
     <section class="hero" data-state="unconfigured">
       <p class="hero-need">Strava の Fitness &amp; Freshness を年度別に</p>
-      <h2 class="hero-title">あなたのデータを、<br>あなただけのプライベート空間で。</h2>
+      <h2 class="hero-title">年度ごとに切り替えて見る、<br>Fitness / Fatigue / Form チャート</h2>
       <p class="hero-sub">
-        Strava 公式 UI の Fitness &amp; Freshness を、<strong>「2025 年だけ」「2018 年だけ」</strong>
-        とワンクリックで年度を切替えて眺める SPA です。
-        ただし<strong>あなたのデータを一切外部サーバーに送信しません</strong>。
-        そのため、あなた専用の中継機 (Cloudflare Worker) を 10 分で構築していただきます。
-        これは、あなたの Client Secret (鍵) を世界であなただけが管理するための、最も安全な方法です。
+        Strava 公式 UI は時間軸スライダーで全期間を一度に表示します。
+        このツールは「2025 年だけ」「2018 年だけ」のように年度を切り替えてチャートを眺める SPA です。
       </p>
+
+      <div class="hero-terms">
+        <p class="hero-terms-title">このツールを使うための条件</p>
+        <ul>
+          <li><strong>サーバーを介しません</strong> ── データはあなたのブラウザと Strava の間だけでやり取りされます。</li>
+          <li><strong>自分専用の門番 (Worker) を置く</strong> ── セキュリティ上、あなた自身で Cloudflare 上に通信の中継役を立てる必要があります。</li>
+          <li><strong>設定は一度だけ</strong> ── 初回は面倒です。ただし一度終われば、あなたの秘密鍵を誰にも預けずに済みます。</li>
+        </ul>
+      </div>
+
       <div class="hero-cta-wrap">
-        <button id="hero-start" class="btn btn-primary btn-lg" type="button">さっそく始める →</button>
+        <button id="hero-start" class="btn btn-primary btn-lg" type="button">セットアップを始める</button>
         <button id="hero-connect" class="btn btn-primary btn-lg" type="button" hidden>Strava と接続</button>
       </div>
-      <p class="hero-assure">※ 取得したアクティビティはあなたのブラウザ内 (localStorage) のみに保存。サーバー送信なし。</p>
+      <p class="hero-assure">取得したアクティビティはブラウザの localStorage に保存。サーバー送信はありません。</p>
     </section>
   </main>
 
