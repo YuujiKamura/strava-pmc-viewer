@@ -30,18 +30,12 @@
       <h2 class="hero-title">Strava Annual Fitness &amp; Freshness</h2>
       <p class="hero-tag">年度別のコンディション推移を可視化するセルフホスト型ツール。</p>
 
-      <section class="hero-source" aria-labelledby="hero-source-title">
-        <h3 id="hero-source-title" class="hero-source-title">Architecture</h3>
+      <section class="hero-source">
         <p class="hero-source-lead">
-          ブラウザの制約 (CORS / Secret 漏洩リスク) を回避するため、visitor 自身の
-          Cloudflare Worker を中継として動作します。コードは右上 GitHub アイコンから。
+          データの流れ: Strava ↔ あなたの Cloudflare Worker ↔ あなたのブラウザ。
+          ブラウザの制約上、認証鍵を一時的に Cloudflare Worker へ置く構成です。
+          設計意図とコードは右上 GitHub アイコンから。
         </p>
-        <ul class="hero-source-bullets">
-          <li><strong>鍵の保管</strong>: visitor 自身の Cloudflare Worker Secrets 内のみ。ブラウザにも開発者サーバにも置かれません。</li>
-          <li><strong>データの流れ</strong>: Strava API ↔ あなたの Worker ↔ あなたのブラウザ。</li>
-          <li><strong>検証</strong>: 導入前に worker/index.js を AI に査読推奨 (確認項目: 認証鍵が Strava 以外のドメインへ送信されていないか)。</li>
-          <li><strong>依存と限界</strong>: 本ツールの安全性は Cloudflare の堅牢性と中継コードの正当性に依存します。Cloudflare は無料ユーザの鍵を保護する義務を負いません。合わない場合は fork して localhost で中継する構成に改造してください。</li>
-        </ul>
       </section>
 
       <div class="hero-cta-wrap">

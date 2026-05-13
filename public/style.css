@@ -127,17 +127,6 @@ body {
   color: var(--fg);
   line-height: 1.6;
 }
-/* ── hero-source bullet 一覧 ──────────────────────── */
-.hero-source-bullets {
-  margin: 0.6rem 0 0;
-  padding-left: 1.1rem;
-  font-size: 0.82rem;
-  color: var(--fg-soft);
-  line-height: 1.7;
-}
-.hero-source-bullets li { margin: 0.2rem 0; }
-.hero-source-bullets strong { color: var(--fg); font-weight: 600; }
-
 /* ── Header GitHub icon ────────────────────────────── */
 .hdr-github {
   display: inline-flex;
