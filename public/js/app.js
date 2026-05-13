@@ -646,6 +646,13 @@ async function loadYear(year, { force = false } = {}) {
     before: Math.floor(end.getTime() / 1000),
     onProgress: msg => fetchStatus.textContent = msg,
   });
+  // 診断: 取れた件数と「最新 activity の日付」を fetchStatus に出す。
+  // force 更新したのに今日の分が出ない時、Strava 側の反映遅延か本ツール側 bug かを切り分け可能に。
+  const latest = acts.reduce((max, a) => {
+    const d = (a.start_date_local || a.start_date || "").slice(0, 10);
+    return d > max ? d : max;
+  }, "");
+  fetchStatus.textContent = `${acts.length} 件取得 (最新 ${latest || "—"}, ${year}年範囲)`;
   activitiesCache.set(year, acts);
   cache.saveYearCache(athId, year, acts);
   // token は refresh で更新されてる可能性、最新を取り直す
