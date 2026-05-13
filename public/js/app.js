@@ -149,12 +149,6 @@ function setConditionAdvice(ctl, atl, tsb, ramp, forecast) {
   conditionAdvice.className = "condition-advice " + cls;
 }
 
-// demo mode 完全廃止 (2026-05-13): user 訂正「俺のデータを他の人間に見せられる
-// わけがない」── プライバシー謳うツールが他人 (yuuji) の実データを demo として
-// 配信する自己矛盾を解消。demo-data.json は物理削除、本コードからも demo 関連
-// 経路を撤去。`?demo=1` / `#demo` / `?fresh=1` の URL param も無効化。
-const DEMO_MODE = false;
-
 // ── state ────────────────────────────────────────────────────────────────
 let token = null;
 let chart = null;
@@ -163,8 +157,7 @@ let currentYear = null;
 let currentPoints = null;         // 「現在時刻に戻る」用の最新 points 参照
 let currentTodayIdx = 0;          // 現在年での「今日」相当の idx
 
-const escapeHtml = s => String(s).replace(/[&<>"']/g, ch =>
-  ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch]));
+import { escapeHtml } from "./util.js";
 
 // ── boot ────────────────────────────────────────────────────────────────
 (async function boot() {
@@ -395,8 +388,27 @@ function wireSetupPanel() {
         setupStatus.className = "setup-status err";
         return;
       }
+      // scope (read vs read_all) を切り替えた時、既存の access_token は古い scope の
+      // まま残り続ける ── user が「絞ったつもり」で read_all のまま動く privacy 違反を
+      // 防ぐため、scope が変化したら token / cache を破棄して再認証フローに戻す。
+      const prev = config.getConfig();
+      const scopeChanged = !!prev && prev.scopeReadAll !== scopeReadAll;
       config.saveConfig({ clientId, workerUrl, scopeReadAll });
-      setupStatus.textContent = "保存しました";
+      let extraMsg = "";
+      if (scopeChanged) {
+        try {
+          const athId = token?.athlete?.id;
+          auth.clearToken();
+          if (athId != null) cache.clearAllForAthlete(athId);
+        } catch { /* ignore */ }
+        token = null;
+        currentPoints = null;
+        currentYear = null;
+        activitiesCache = new Map();
+        onDisconnected();
+        extraMsg = " (scope が変わったので再接続が必要です)";
+      }
+      setupStatus.textContent = "保存しました" + extraMsg;
       setupStatus.className = "setup-status ok";
       renderSetupCurrent();
       closeSetupPanel();
@@ -475,17 +487,12 @@ if (todayBtn) {
 // ── year selection ──────────────────────────────────────────────────────
 function renderYearButtons() {
   while (yearButtons.firstChild) yearButtons.removeChild(yearButtons.firstChild);
-  let years;
-  if (DEMO_MODE && demoYearsAvailable && demoYearsAvailable.length) {
-    years = demoYearsAvailable.slice();
-  } else {
-    const thisYear = new Date().getFullYear();
-    years = [];
-    // Strava OAuth で取得できる範囲は基本制限なし。yuuji 等の長期 user 向けに
-    // 過去 15 年を default で並べる。data 無い年を押しても空 chart が出るだけ。
-    for (let y = thisYear; y >= thisYear - 14; y--) years.push(y);
-  }
-  const cachedSet = new Set(DEMO_MODE ? years : cache.cachedYears(token?.athlete?.id));
+  const thisYear = new Date().getFullYear();
+  const years = [];
+  // Strava OAuth で取得できる範囲は基本制限なし。長期 user 向けに過去 15 年を
+  // default で並べる。data 無い年を押しても空 chart が出るだけ。
+  for (let y = thisYear; y >= thisYear - 14; y--) years.push(y);
+  const cachedSet = new Set(cache.cachedYears(token?.athlete?.id));
   for (const y of years) {
     const btn = document.createElement("button");
     const hasCache = cachedSet.has(y);
@@ -503,12 +510,12 @@ async function selectYear(year, { force = false } = {}) {
     b.classList.toggle("active", Number(b.dataset.year) === year);
     b.disabled = true;
   }
-  enrichBtn.hidden = DEMO_MODE ? true : false;
-  refreshBtn.hidden = DEMO_MODE;
-  fetchStatus.textContent = DEMO_MODE ? "読込中…" : (force ? "強制取得中…" : "確認中…");
+  enrichBtn.hidden = false;
+  refreshBtn.hidden = false;
+  fetchStatus.textContent = force ? "強制取得中…" : "確認中…";
 
   try {
-    const acts = DEMO_MODE ? await loadYearDemo(year) : await loadYear(year, { force });
+    const acts = await loadYear(year, { force });
     // status は loadYear がキャッシュ vs API でメッセージ調整済 (force 時は上書き不要)
     render(year, acts);
     renderYearButtons();
@@ -522,21 +529,6 @@ async function selectYear(year, { force = false } = {}) {
   } finally {
     for (const b of yearButtons.querySelectorAll("button")) b.disabled = false;
   }
-}
-
-// demo mode: 全件 cache を 年 で filter (前年11月〜当年末で warmup 込み)
-async function loadYearDemo(year) {
-  if (activitiesCache.has(year)) return activitiesCache.get(year);
-  if (!demoActivities) throw new Error("demo データ未ロード");
-  const startMs = Date.UTC(year - 1, 10, 1);                  // 前年11月1日
-  const endMs   = Date.UTC(year, 11, 31, 23, 59, 59);         // 当年12月31日
-  const acts = demoActivities.filter(a => {
-    if (!a.start_date) return false;
-    const t = Date.parse(a.start_date);
-    return Number.isFinite(t) && t >= startMs && t <= endMs;
-  });
-  activitiesCache.set(year, acts);
-  return acts;
 }
 
 async function loadYear(year, { force = false } = {}) {

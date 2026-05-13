@@ -8,13 +8,25 @@
 import { getConfig } from "./config.js";
 
 const STORAGE_KEY = "strava_pmc_token_v1";
+// OAuth `state` パラメータ用 (RFC 6749 §10.12 login-CSRF / token-injection 防御)。
+// authorize 直前に random 生成して sessionStorage、callback で URL の state と照合する。
+// sessionStorage を選んだのは「same tab 内 1 回限り、tab を閉じれば消えて再利用不可」のため。
+const STATE_KEY = "strava_pmc_oauth_state_v1";
+
 // scope は最小権限を default に。public activity だけで PMC は計算できる。
 // private 活動も対象にしたい visitor は config に `scopeReadAll: true` を保存
 // (UI のチェックボックスから) すると `activity:read_all` に格上げされる。
 const SCOPE_PUBLIC = "activity:read";
 const SCOPE_ALL    = "activity:read_all";
-function scopeFor(cfg) {
+export function scopeFor(cfg) {
   return cfg && cfg.scopeReadAll ? SCOPE_ALL : SCOPE_PUBLIC;
+}
+
+/** 32-hex-char random state。crypto.getRandomValues を使う。 */
+function generateState() {
+  const buf = new Uint8Array(16);
+  crypto.getRandomValues(buf);
+  return Array.from(buf, b => b.toString(16).padStart(2, "0")).join("");
 }
 
 /** redirect_uri は今いる URL (origin + pathname)、host 移動には追従しない。 */
@@ -46,12 +58,16 @@ export function clearToken() {
 
 export function authorizeUrl() {
   const cfg = requireConfig();
+  const state = generateState();
+  try { sessionStorage.setItem(STATE_KEY, state); }
+  catch { /* private mode 等で setItem 失敗 → state は URL 側のみ、照合段で fail-close */ }
   const p = new URLSearchParams({
     client_id: cfg.clientId,
     redirect_uri: redirectUri(),
     response_type: "code",
     approval_prompt: "auto",
     scope: scopeFor(cfg),
+    state,
   });
   return `https://www.strava.com/oauth/authorize?${p}`;
 }
@@ -88,12 +104,20 @@ export async function refreshIfNeeded(tok) {
   return merged;
 }
 
-/** location.search 内の ?code= を消費して token を返す。auth callback で 1 回だけ。 */
+/** location.search 内の ?code= を消費して token を返す。auth callback で 1 回だけ。
+ * RFC 6749 §10.12: state を照合し、一致しなければ throw して exchange は走らせない。 */
 export async function consumeAuthCodeIfPresent() {
   const params = new URLSearchParams(location.search);
   const code = params.get("code");
   if (!code) return null;
+  const returnedState = params.get("state");
+  let savedState = null;
+  try { savedState = sessionStorage.getItem(STATE_KEY); } catch { /* ignore */ }
   // URL を綺麗に戻す (history 残さない)
   history.replaceState(null, "", location.pathname);
+  try { sessionStorage.removeItem(STATE_KEY); } catch { /* ignore */ }
+  if (!savedState || !returnedState || savedState !== returnedState) {
+    throw new Error("oauth_state_mismatch");
+  }
   return await exchangeCode(code);
 }

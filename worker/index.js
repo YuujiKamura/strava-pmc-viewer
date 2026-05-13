@@ -12,16 +12,25 @@
 
 const TOKEN_URL = "https://www.strava.com/oauth/token";
 
-function corsHeaders(origin, allowed) {
+// Origin が allowList に明示マッチしない場合は ACAO header を付けない (fail-closed)。
+// browser は ACAO 不在を CORS reject として扱うため、token-exchange を全 origin に開かない。
+// "*" fallback は禁止: ALLOWED_ORIGIN 未設定の deploy で「誰でも /exchange を叩ける」状態を防ぐ。
+export function corsHeaders(origin, allowed) {
   const allowList = (allowed || "").split(",").map(s => s.trim()).filter(Boolean);
-  const allow = allowList.includes(origin) ? origin : allowList[0] || "*";
-  return {
-    "Access-Control-Allow-Origin":  allow,
+  const matched = origin && allowList.includes(origin);
+  const headers = {
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Max-Age":       "86400",
     "Vary":                          "Origin",
   };
+  if (matched) headers["Access-Control-Allow-Origin"] = origin;
+  return headers;
+}
+
+export function isOriginAllowed(origin, allowed) {
+  const allowList = (allowed || "").split(",").map(s => s.trim()).filter(Boolean);
+  return !!origin && allowList.includes(origin);
 }
 
 async function jsonResponse(obj, status, cors) {
@@ -48,11 +57,18 @@ export default {
     const url    = new URL(request.url);
     const origin = request.headers.get("Origin") || "";
     const cors   = corsHeaders(origin, env.ALLOWED_ORIGIN);
+    const allowed = isOriginAllowed(origin, env.ALLOWED_ORIGIN);
 
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
 
     if (request.method !== "POST") {
       return jsonResponse({ error: "method_not_allowed" }, 405, cors);
+    }
+
+    // POST は Origin allowlist を強制 (fail-closed)。
+    // OPTIONS は browser の preflight 用に method/headers だけは返す。
+    if (!allowed) {
+      return jsonResponse({ error: "origin_not_allowed" }, 403, cors);
     }
 
     let body;

@@ -2,11 +2,20 @@ name = "strava-pmc-relay"
 main = "index.js"
 compatibility_date = "2026-05-13"
 
-# secrets (set with `wrangler secret put STRAVA_CLIENT_ID` etc):
+# Secrets (deploy 前に必須、`wrangler secret put` で設定):
 #   STRAVA_CLIENT_ID
 #   STRAVA_CLIENT_SECRET
-# variable:
-#   ALLOWED_ORIGIN  "https://<user>.github.io,http://localhost:8080"
+#
+# Variable (deploy 前に必須、production の Origin を上書きせよ):
+#   ALLOWED_ORIGIN  "https://<user>.github.io"  (カンマ区切りで複数可)
+#
+# 未設定 / 空のままだと corsHeaders() は ACAO header を付けず、すべての browser
+# 経由 POST が CORS で reject される (fail-closed)。本番 deploy 前に必ず上書き:
+#   wrangler deploy --var ALLOWED_ORIGIN:"https://<user>.github.io"
+# または `wrangler.toml` の本ファイルを fork で書き換えて deploy。
+#
+# ローカル開発時は worker/.dev.vars (gitignored) で同 key を上書きする。
 
 [vars]
-ALLOWED_ORIGIN = "http://localhost:8080"
+# fail-closed default: 空文字。fork した user が上書きすること。
+ALLOWED_ORIGIN = ""

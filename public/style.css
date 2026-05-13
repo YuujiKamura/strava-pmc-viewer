@@ -77,18 +77,6 @@ body {
   max-width: 640px;
   margin: 0 auto;
 }
-.hero-need {
-  display: inline-block;
-  font-size: 0.72rem;
-  color: var(--accent);
-  background: var(--accent-soft);
-  padding: 0.2rem 0.75rem;
-  border-radius: 999px;
-  letter-spacing: 0.05em;
-  margin: 0 0 1rem;
-  text-transform: uppercase;
-  font-weight: 600;
-}
 /* hero-minimal: 究極のミニマル (title + tag + button のみ) */
 .hero-minimal { padding: 5rem 1rem 4rem; }
 .hero-minimal .hero-title { font-size: 2.4rem; }
@@ -115,42 +103,6 @@ body {
   font-size: 0.78rem;
   margin: 0.5rem 0 0;
 }
-.hero-terms {
-  text-align: left;
-  background: var(--bg-elev);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 0.9rem 1.2rem 1rem;
-  margin: 0 auto 1.5rem;
-  max-width: 600px;
-}
-.hero-terms-title {
-  margin: 0 0 0.5rem;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--muted);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.hero-terms ul {
-  margin: 0; padding-left: 1.2rem;
-  font-size: 0.88rem;
-  color: var(--fg-soft);
-  line-height: 1.7;
-}
-.hero-terms li { margin: 0.25rem 0; }
-.hero-terms strong { color: var(--fg); }
-
-/* ── Demo banner ─────────────────────────────────────── */
-.demo-banner {
-  background: #fff3cd; color: #6b5800; border: 1px solid #ffe9a8;
-  padding: 0.6rem 1rem; margin: 0.5rem auto; border-radius: 6px;
-  font-size: 0.85rem; max-width: 1100px;
-}
-.demo-banner strong { color: #b04400; }
-.demo-banner-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
-.demo-banner-row > div:first-child { flex: 1; min-width: 0; }
-
 /* ── Setup panel (collapsed by default) ─────────────── */
 .setup-panel { max-width: 1100px; margin: 0.5rem auto; padding: 0 1rem; }
 .setup-panel > summary {
