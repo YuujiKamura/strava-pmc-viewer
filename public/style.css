@@ -127,28 +127,19 @@ body {
   color: var(--fg);
   line-height: 1.6;
 }
-.hero-source-bullets {
-  margin: 0 0 0.6rem;
-  padding-left: 1.1rem;
-  font-size: 0.82rem;
-  color: var(--fg-soft);
-  line-height: 1.7;
-}
-.hero-source-bullets li { margin: 0.15rem 0; }
-.hero-source-linkline {
-  margin: 0;
-  font-size: 0.82rem;
-  line-height: 1.6;
-}
-.hero-source-linkline a { color: var(--fg); font-weight: 600; text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
-.hero-source-fallback {
-  margin: 0.7rem 0 0;
-  padding: 0.6rem 0 0;
-  border-top: 1px dashed var(--line);
-  font-size: 0.76rem;
+/* ── Header GitHub icon ────────────────────────────── */
+.hdr-github {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   color: var(--muted);
-  line-height: 1.7;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
 }
+.hdr-github:hover { color: var(--fg); background: var(--bg-elev); }
+.hdr-github svg { display: block; }
 /* ── Setup panel (collapsed by default) ─────────────── */
 .setup-panel { max-width: 1100px; margin: 0.5rem auto; padding: 0 1rem; }
 .setup-panel > summary {
