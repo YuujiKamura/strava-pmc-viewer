@@ -127,6 +127,31 @@ body {
   color: var(--fg);
   line-height: 1.6;
 }
+/* ── hero-source FAQ details ──────────────────────── */
+.hero-source-faq {
+  margin: 0.7rem 0 0;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--line);
+}
+.hero-source-faq summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  list-style: none;
+}
+.hero-source-faq summary::before { content: "▸ "; color: var(--muted-2); }
+.hero-source-faq[open] summary::before { content: "▾ "; }
+.hero-source-faq summary::-webkit-details-marker { display: none; }
+.hero-source-faq p {
+  margin: 0.6rem 0 0;
+  font-size: 0.78rem;
+  color: var(--fg-soft);
+  line-height: 1.7;
+}
+.hero-source-faq p code { background: var(--accent-soft); color: var(--accent); padding: 0 0.3rem; border-radius: 3px; font-size: 0.86em; }
+.hero-source-faq p strong { color: var(--fg); font-weight: 600; }
+
 /* ── Header GitHub icon ────────────────────────────── */
 .hdr-github {
   display: inline-flex;
