@@ -15,6 +15,15 @@
 
 const TOKEN_URL = "https://www.strava.com/oauth/token";
 
+/** Strava rate-limit header の "100,1000" 形式を { fifteen, daily } にパース。
+ *  欠落 / 非数値 / 単一値の境界は null/0 で defensive 返却。 */
+export function parsePair(header) {
+  if (!header) return null;
+  const [a, b] = header.split(",").map(s => parseInt(s, 10));
+  if (!Number.isFinite(a)) return null;
+  return { fifteen: a, daily: Number.isFinite(b) ? b : 0 };
+}
+
 // Origin が allowList に明示マッチしない場合は ACAO header を付けない (fail-closed)。
 // browser は ACAO 不在を CORS reject として扱うため、token-exchange を全 origin に開かない。
 // "*" fallback は禁止: ALLOWED_ORIGIN 未設定の deploy で「誰でも /exchange を叩ける」状態を防ぐ。
@@ -119,12 +128,6 @@ export default {
       const r = await fetch("https://www.strava.com/api/v3/athlete", {
         headers: { Authorization: `Bearer ${access_token}` },
       });
-      const parsePair = (header) => {
-        if (!header) return null;
-        const [a, b] = header.split(",").map(s => parseInt(s, 10));
-        if (!Number.isFinite(a)) return null;
-        return { fifteen: a, daily: Number.isFinite(b) ? b : 0 };
-      };
       const overallLim = parsePair(r.headers.get("X-RateLimit-Limit"));
       const overallUse = parsePair(r.headers.get("X-RateLimit-Usage"));
       const readLim    = parsePair(r.headers.get("X-ReadRateLimit-Limit"));

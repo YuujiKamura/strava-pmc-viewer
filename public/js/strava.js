@@ -36,12 +36,18 @@ function saveApiCallLog() {
   catch { /* quota exceeded 等は無視、memory log は機能継続 */ }
 }
 
+// 内部実装を test しやすくするため、log 配列を直接受け取る純粋関数として export。
+// 本物の logApiCall は localStorage 永続化込みで apiCallLog を内部で使う wrapper。
+export function pruneApiCallLog(log, now = Date.now(), windowMs = 86400000) {
+  const cutoff = now - windowMs;
+  while (log.length && log[0] < cutoff) log.shift();
+  return log;
+}
+
 function logApiCall() {
   const now = Date.now();
   apiCallLog.push(now);
-  // 24h より古い entry は捨てる (memory リーク防止 + localStorage 容量抑制)
-  const cutoff = now - 86400000;
-  while (apiCallLog.length && apiCallLog[0] < cutoff) apiCallLog.shift();
+  pruneApiCallLog(apiCallLog, now);
   saveApiCallLog();
 }
 
@@ -57,10 +63,15 @@ export async function refreshRateStatus(token) {
   const cfg = getConfig();
   if (!cfg || !cfg.workerUrl || !token || !token.access_token) return null;
   try {
+    // 他の Strava 呼び出しと同じく refreshIfNeeded を経由して fresh token を使う。
+    // 期限切れ token をそのまま Worker に渡すと Strava が 401 を返し、Worker が
+    // rate_headers_missing 502 → snapshot null で silent fallback、user に
+    // 「self-count」表示が出続ける bug を防ぐ。
+    const fresh = await refreshIfNeeded(token);
     const r = await fetch(cfg.workerUrl + "/rate-status", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ access_token: token.access_token }),
+      body: JSON.stringify({ access_token: fresh.access_token }),
     });
     if (!r.ok) return null;
     const data = await r.json();

@@ -95,25 +95,6 @@ function updateCards(points, idx) {
   setConditionAdvice(displayCtl, displayAtl, displayTsb, ramp, forecast);
 }
 
-/** 時間数 → 「N 日 H 時間」or 「H 時間 M 分」 */
-function formatElapsed(hours) {
-  if (hours < 1) {
-    const m = Math.max(0, Math.round(hours * 60));
-    return `${m} 分`;
-  }
-  if (hours < 24) {
-    let h = Math.floor(hours);
-    let m = Math.round((hours - h) * 60);
-    if (m >= 60) { h += 1; m = 0; }
-    if (h >= 24) return `1 日`;
-    return m > 0 ? `${h} 時間 ${m} 分` : `${h} 時間`;
-  }
-  let d = Math.floor(hours / 24);
-  let h = Math.round(hours - d * 24);
-  if (h >= 24) { d += 1; h = 0; }  // round 後の繰り上げ (h=24 を「日に+1」へ吸収)
-  return h > 0 ? `${d} 日 ${h} 時間` : `${d} 日`;
-}
-
 /** hoursUntilFresh の結果を「あと N 日 H 時間で身体の余裕が戻る」表記に */
 function renderForecastHours(hours) {
   const el = document.getElementById("cards-forecast");
@@ -211,12 +192,13 @@ let chart = null;
 let activitiesCache = new Map();  // year → Array<Activity>
 let currentYear = null;
 let enrichAborted = false;        // 背景 enrich 中に user が別年クリックした時の停止 flag
+let enrichActive = false;         // runEnrich が in-flight か (warmup との並走防止)
 let currentPoints = null;         // 「現在時刻に戻る」用の最新 points 参照
 let currentByDate = null;         // 同じく、day-detail panel 再描画用の byDate Map
 let currentTodayIdx = 0;          // 現在年での「今日」相当の idx
 let currentLastEndMs = null;      // 現在年の最終 activity 終了時刻 (ms epoch)、時間粒度の減衰起点
 
-import { escapeHtml } from "./util.js";
+import { escapeHtml, dedupActivities, formatElapsed } from "./util.js";
 
 // ── boot ────────────────────────────────────────────────────────────────
 (async function boot() {
@@ -682,7 +664,14 @@ async function ensureWarmupCache(year) {
     if (!cache.loadYearCache(athId, y)) missing.push(y);
   }
   if (!missing.length) return;
+  // enrich が in-flight の時は warmup を走らせない (100/15min を両方で食って
+  // 429 を踏むのを物理層で防ぐ)。enrich 終了後に user が当年を再選択すれば走る。
+  if (enrichActive) {
+    fetchStatus.textContent = "パワーデータ取得中のため warmup は後で実行されます";
+    return;
+  }
   for (const y of missing) {
+    if (enrichActive) break;  // 途中で enrich が始まった時も abort
     fetchStatus.textContent = `精度向上のため ${y}年データを取得中…`;
     const start = new Date(Date.UTC(y - 1, 10, 1));
     const end   = new Date(Date.UTC(y, 11, 31, 23, 59, 59));
@@ -701,20 +690,6 @@ async function ensureWarmupCache(year) {
       console.warn(`warmup ${y} 取得失敗:`, e?.message);
     }
   }
-}
-
-/** activity.id でユニーク化 (warmup と loadYear の重複期間を吸収)。 */
-function dedupActivities(activities) {
-  const seen = new Set();
-  const out = [];
-  for (const a of activities) {
-    if (a && a.id != null) {
-      if (seen.has(a.id)) continue;
-      seen.add(a.id);
-    }
-    out.push(a);
-  }
-  return out;
 }
 
 // ── render ──────────────────────────────────────────────────────────────
@@ -878,6 +853,7 @@ async function runEnrich(year, acts, { background = false } = {}) {
     return;
   }
   enrichAborted = false;
+  enrichActive = true;
   if (!background) enrichBtn.disabled = true;
   const athId = token?.athlete?.id;
   let done = 0;
@@ -913,6 +889,7 @@ async function runEnrich(year, acts, { background = false } = {}) {
   } finally {
     // 完了・中断いずれでも cache へ反映、次回起動時に積み残しが見える
     if (done > 0) cache.saveYearCache(athId, year, acts);
+    enrichActive = false;
     if (!background) enrichBtn.disabled = false;
     if (currentYear === year && done > 0) render(currentYear, acts);
   }
