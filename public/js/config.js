@@ -18,10 +18,13 @@ export function getConfig() {
     const workerUrl = typeof obj.workerUrl === "string" ? obj.workerUrl.trim() : "";
     if (!clientId || !workerUrl) return null;
     const normalizedWorker = workerUrl.replace(/\/+$/, "");
+    // scopeReadAll default = true: 本ツールは「自分の Strava データを自分で分析」
+    // する self-hosted ツール、private activity も含めて取れないと PMC が
+    // 不完全になる。明示的に false が保存されている時のみ public 限定。
     return {
       clientId,
       workerUrl: normalizedWorker,
-      scopeReadAll: !!obj.scopeReadAll,
+      scopeReadAll: obj.scopeReadAll !== false,
     };
   } catch {
     return null;
@@ -35,7 +38,8 @@ export function saveConfig({ clientId, workerUrl, scopeReadAll }) {
   const payload = {
     clientId:  String(clientId  || "").trim(),
     workerUrl: String(workerUrl || "").trim().replace(/\/+$/, ""),
-    scopeReadAll: !!scopeReadAll,
+    // undefined / null は default=true (= read_all、private 含む) に倒す
+    scopeReadAll: scopeReadAll !== false,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
