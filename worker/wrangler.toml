@@ -1,0 +1,12 @@
+name = "strava-pmc-relay"
+main = "index.js"
+compatibility_date = "2026-05-13"
+
+# secrets (set with `wrangler secret put STRAVA_CLIENT_ID` etc):
+#   STRAVA_CLIENT_ID
+#   STRAVA_CLIENT_SECRET
+# variable:
+#   ALLOWED_ORIGIN  "https://<user>.github.io,http://localhost:8080"
+
+[vars]
+ALLOWED_ORIGIN = "http://localhost:8080"

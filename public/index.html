@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Strava Fitness & Freshness Viewer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hdr">
+    <h1>フィットネス / フレッシュネス チャート</h1>
+    <div class="hdr-status">
+      <span id="auth-status">未接続</span>
+      <button id="connect-btn" class="btn btn-primary">Strava と接続</button>
+      <button id="logout-btn" class="btn" hidden>切断</button>
+    </div>
+  </header>
+
+  <main class="shell" id="auth-shell" hidden>
+    <p class="intro">
+      Strava と接続して年度を選ぶと、その年のアクティビティから
+      <strong>Fitness (CTL) / Fatigue (ATL) / Form (TSB)</strong> を計算して描画します。
+      データはあなたのブラウザに留まり、サーバに保存されません。
+    </p>
+  </main>
+
+  <main class="shell" id="dash-shell" hidden>
+    <div class="cards">
+      <div class="card"><div class="label">CTL (Fitness)</div><div class="value" id="m-ctl">—</div></div>
+      <div class="card"><div class="label">ATL (Fatigue)</div><div class="value" id="m-atl">—</div></div>
+      <div class="card" id="card-tsb"><div class="label">TSB (Form)</div><div class="value" id="m-tsb">—</div></div>
+      <div class="card"><div class="label">Ramp (CTL Δ/7d)</div><div class="value" id="m-ramp">—</div></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="windows" id="year-buttons"></div>
+      <div class="windows-actions">
+        <span class="status" id="fetch-status"></span>
+        <button id="enrich-btn" class="btn" hidden
+                title="表示中の年について Suffer Score / Power を 1 件ずつ追加取得 (時間かかる)">
+          詳細値を取得 (Strava UI に近い数値)
+        </button>
+      </div>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-toolbar">
+        <span class="zoom-status" id="zoom-status">全期間表示</span>
+        <button id="reset-zoom" class="btn btn-sm" disabled>ズームリセット</button>
+      </div>
+      <canvas id="pmc-chart"></canvas>
+    </div>
+
+    <div class="legend-note">
+      青 = Fitness (CTL, 42日 EMA) ·
+      ピンク = Fatigue (ATL, 7日 EMA) ·
+      オレンジ = Form (TSB)。
+      グレー点 = 各日 TSS。ドラッグで範囲ズーム、ホイールも有効、チャート任意点クリックで下に詳細表示。
+    </div>
+
+    <div class="day-detail">
+      <div class="day-head">
+        <span class="day-title" id="day-title">チャートをクリックしてください</span>
+        <span class="day-metrics" id="day-metrics"></span>
+      </div>
+      <div class="day-window" id="day-window"></div>
+    </div>
+  </main>
+
+  <footer class="ftr">
+    <small>
+      Strava ToS § 5.1 + § 2.10 準拠 ── 取得データはブラウザ内 (sessionStorage)
+      のみ保持、ページ離脱で消去。クロスユーザー共有なし、再配布なし。
+    </small>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

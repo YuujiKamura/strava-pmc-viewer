@@ -1,0 +1,71 @@
+:root {
+  --bg: #fafafa; --fg: #222; --muted: #888; --line: #e5e5e5;
+  --accent: #fc4c02; --accent-soft: rgba(252, 76, 2, 0.08);
+  --pos: #1f6f3a; --neg: #b03030;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic", sans-serif;
+  background: var(--bg); color: var(--fg);
+}
+.hdr {
+  position: sticky; top: 0; z-index: 10;
+  background: #fff; border-bottom: 1px solid var(--line);
+  padding: 0.6rem 1rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+}
+.hdr h1 { margin: 0; font-size: 1.05rem; }
+.hdr-status { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+.shell { max-width: 1100px; margin: 1rem auto; padding: 0 1rem; }
+.intro { color: var(--muted); line-height: 1.6; }
+
+.btn {
+  font-size: 0.85rem; padding: 0.3rem 0.7rem;
+  border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; color: #333;
+}
+.btn:hover:not(:disabled) { background: #f4f4f4; border-color: #999; }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover:not(:disabled) { background: #e04400; border-color: #e04400; }
+.btn-sm { font-size: 0.75rem; padding: 0.2rem 0.5rem; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
+.card { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 0.75rem 1rem; }
+.card .label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.card .value { font-size: 1.5rem; font-weight: 600; line-height: 1.1; margin-top: 0.2rem; }
+.card.tsb-pos .value { color: var(--pos); }
+.card.tsb-neg .value { color: var(--neg); }
+
+.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 0.5rem 0 1rem; }
+.windows { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.windows button { padding: 0.25rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; background: #fff; cursor: pointer; font-size: 0.85rem; color: #444; }
+.windows button.active { background: #222; color: #fff; border-color: #222; }
+.windows button:disabled { opacity: 0.5; cursor: default; }
+.windows-actions { display: flex; align-items: center; gap: 0.5rem; }
+.status { font-size: 0.78rem; color: var(--muted); }
+
+.chart-wrap { position: relative; height: 420px; background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 0.5rem; }
+.chart-toolbar { position: absolute; top: 0.5rem; right: 0.75rem; z-index: 10; display: flex; align-items: center; gap: 0.5rem; pointer-events: none; }
+.chart-toolbar > * { pointer-events: auto; }
+.zoom-status { font-size: 0.72rem; color: var(--muted); background: rgba(255,255,255,0.85); padding: 0.15rem 0.4rem; border-radius: 3px; }
+.legend-note { font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem; line-height: 1.5; }
+
+.day-detail { margin-top: 1rem; background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 0.75rem 1rem; min-height: 64px; }
+.day-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 0.5rem; }
+.day-title { font-weight: 600; font-size: 0.95rem; }
+.day-metrics { font-size: 0.75rem; color: var(--muted); }
+.day-window .day-block { border-top: 1px solid #ececec; padding: 0.5rem 0; }
+.day-window .day-block:first-child { border-top: 0; }
+.day-window .day-block.focus { background: var(--accent-soft); margin: 0 -0.5rem; padding-left: 0.5rem; padding-right: 0.5rem; border-radius: 4px; }
+.day-window .day-header { display: flex; align-items: baseline; justify-content: space-between; font-size: 0.8rem; color: #555; margin-bottom: 0.25rem; }
+.day-window .day-header .date { font-weight: 600; color: var(--fg); }
+.day-window .day-header.focus .date::before { content: "▶ "; color: var(--accent); }
+.day-window ul { list-style: none; margin: 0; padding: 0 0 0 0.5rem; }
+.day-window li { padding: 0.2rem 0; display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
+.day-window a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.day-window a:hover { text-decoration: underline; }
+.day-window .meta { color: var(--muted); font-size: 0.78rem; }
+.day-window .empty { color: #bbb; font-style: italic; font-size: 0.78rem; padding-left: 0.5rem; }
+
+.ftr { text-align: center; color: var(--muted); padding: 1rem; font-size: 0.72rem; }
