@@ -25,58 +25,23 @@
       <p class="hero-tag">年度別のコンディション推移を可視化するセルフホスト型ツール。<strong>コードは AI 生成</strong>。</p>
 
       <section class="hero-source" aria-labelledby="hero-source-title">
-        <h3 id="hero-source-title" class="hero-source-title">Source Code &amp; Verification</h3>
+        <h3 id="hero-source-title" class="hero-source-title">Source &amp; Verification</h3>
         <p class="hero-source-lead">
-          能書きより先にソースを読んでください。開発者の言葉ではなく、コードと挙動を
-          信頼の根拠に。
+          本ツールは MIT License で公開。導入前に Proxy Worker のコードを AI
+          (ChatGPT / Claude 等) に読ませて、以下を確認してください。
         </p>
-        <ul class="hero-source-links">
-          <li>
-            <a href="https://github.com/YuujiKamura/strava-pmc-viewer" target="_blank" rel="noopener">
-              Logic Repository (MIT License)
-            </a>
-            <span class="hero-source-meta">— SPA (UI / 描画 / OAuth flow / PMC 計算) + Worker + tests</span>
-          </li>
-          <li>
-            <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js" target="_blank" rel="noopener">
-              Proxy Worker (worker/index.js, 約 100 行)
-            </a>
-            <span class="hero-source-meta">— Strava OAuth トークン中継のみ、データ保存ロジックなし</span>
-          </li>
-        </ul>
-
-        <h4 class="hero-source-sub">Client Secret の所在</h4>
         <ul class="hero-source-bullets">
-          <li>開発者のサーバ: <strong>経由しない</strong></li>
-          <li>ブラウザの localStorage: <strong>保存しない</strong></li>
-          <li>Cloudflare Worker の Secrets: <strong>唯一の保管場所</strong> (visitor 自身の Cloudflare アカウント内)</li>
+          <li>認証鍵 (Secret) が Strava 以外のドメインに送信されていないか</li>
+          <li>不要なログ出力が含まれていないか</li>
         </ul>
-
-        <h4 class="hero-source-sub">残るリスク</h4>
-        <ul class="hero-source-bullets">
-          <li><strong>インフラリスク</strong>: Cloudflare 自体の脆弱性 / 内部不正で Secrets が抜かれる可能性 (= 無料 SaaS に鍵を置くという妥協)</li>
-          <li><strong>コードリスク</strong>: AI 生成の中継コードに Secret を外部送信するロジックが紛れ込んでいる可能性 (visitor の AI 検証で排除可能)</li>
-        </ul>
-
-        <p class="hero-source-recommend">
-          <strong>後者を排除するため、AI に検証させるのが本ツールの設計意図</strong>。
-          推奨は <code>git clone</code> してローカルで AI エージェント (Claude Code /
-          Cursor / Aider 等) に全リポを読ませること。Worker 単体なら ChatGPT / Claude に
-          貼って読ませるだけでも入口になります。検証プロンプト例:
+        <p class="hero-source-linkline">
+          <a href="https://github.com/YuujiKamura/strava-pmc-viewer" target="_blank" rel="noopener">Logic Repository</a>
+          ／
+          <a href="https://github.com/YuujiKamura/strava-pmc-viewer/blob/master/worker/index.js" target="_blank" rel="noopener">Proxy Worker (約 100 行)</a>
         </p>
-        <pre class="hero-source-prompt">worker/index.js を読んで。Cloudflare の環境変数 (Secrets) に
-アクセスしているが、その値を Strava の公式エンドポイント
-(www.strava.com/oauth/token) 以外に送信したり、ログに書き出す
-経路がないか厳密にチェックして。1 bit でも外部に漏れる経路が
-あれば指摘して。</pre>
-
         <p class="hero-source-fallback">
-          <strong>「無料 SaaS に鍵を置くこと自体が不気味」と感じるなら、それは正しい
-          セキュリティ感覚です。</strong>その場合は (a) 利用しない、または (b)
-          <a href="https://github.com/YuujiKamura/strava-pmc-viewer/fork" target="_blank" rel="noopener">fork</a>
-          して中継部分を localhost (Express / Node 等) で動かす構成に改造してください。
-          本ツールはあくまで「他人のサーバに全データを預けるよりは、自分管理下の Cloudflare
-          に踏み台を置く方がマシ」というエンジニア的妥協点の上に立っています。
+          無料 SaaS に鍵を置くこと自体が不気味なら、利用を控えるか、fork して
+          ローカルプロキシ方式に改造してください。
         </p>
       </section>
 
