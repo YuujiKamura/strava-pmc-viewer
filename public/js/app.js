@@ -1,6 +1,6 @@
 import * as auth from "./auth.js";
 import * as config from "./config.js";
-import { fetchActivities, fetchActivityDetail } from "./strava.js";
+import { fetchActivities, fetchActivityDetail, getLastRateLimit } from "./strava.js";
 import {
   computePmc, decayForward, hoursUntilFresh, lastActivityEndMs,
 } from "./pmc.js";
@@ -881,10 +881,11 @@ async function runEnrich(year, acts, { background = false } = {}) {
           moving_time: d.moving_time,
         });
         done++;
-        const remainMin = Math.ceil((needs.length - done) * ENRICH_INTERVAL_MS / 60000);
-        fetchStatus.textContent = background
-          ? `精度向上中 ${done}/${needs.length} (背景で進行、残り 約${remainMin}分)`
-          : `詳細取得 ${done}/${needs.length} (残り 約${remainMin}分)`;
+        const api = apiRemainText();
+        fetchStatus.textContent = api
+          ? `パワーデータ取得 ${done}/${needs.length} ── ${api}`
+          : `パワーデータ取得 ${done}/${needs.length}`;
+        updateEnrichBtn();  // ボタン側にも残数を反映
         await new Promise(r => setTimeout(r, ENRICH_INTERVAL_MS));
         // 10 件ごとに cache 保存して中断耐性 (タブ閉じても次回続きから)
         if (done % 10 === 0) cache.saveYearCache(athId, year, acts);
@@ -905,22 +906,32 @@ async function runEnrich(year, acts, { background = false } = {}) {
   }
 }
 
+/** 残 API 数フラグメント (rate limit info があれば「残 API X/15分 Y/日」)。
+ *  なければ空文字 (loadYear する前は表示できないので非表示)。 */
+function apiRemainText() {
+  const r = getLastRateLimit();
+  if (!r) return "";
+  return `残 API ${r.fifteenRemaining}/15分・${r.dailyRemaining}/日`;
+}
+
 /** enrich ボタンの状態を現在年の未取得件数に合わせて更新 (押す前に見えるラベル) */
 function updateEnrichBtn() {
   if (!currentYear) {
-    enrichBtn.textContent = "公式精度に揃える";
+    enrichBtn.textContent = "パワーデータを全件取得";
     enrichBtn.disabled = true;
     return;
   }
   const acts = activitiesCache.get(currentYear) || [];
   const needs = acts.filter(a => a.suffer_score == null && a.weighted_average_watts == null);
   if (needs.length === 0) {
-    enrichBtn.textContent = `公式精度に揃え済み (${acts.length} 件)`;
+    enrichBtn.textContent = `パワーデータ取得済 (${acts.length} 件)`;
     enrichBtn.disabled = true;
     return;
   }
-  const mins = Math.ceil(needs.length * ENRICH_INTERVAL_MS / 60000);
-  enrichBtn.textContent = `公式精度に揃える (残 ${needs.length} 件 約${mins}分)`;
+  const api = apiRemainText();
+  enrichBtn.textContent = api
+    ? `パワーデータを全件取得 (残 ${needs.length} 件、${api})`
+    : `パワーデータを全件取得 (残 ${needs.length} 件)`;
   enrichBtn.disabled = false;
 }
 
