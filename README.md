@@ -1,3 +1,5 @@
+<img width="1172" height="1200" alt="image" src="https://github.com/user-attachments/assets/cb1fd370-7ab3-4973-afb5-45f635359f18" />
+
 # Strava PMC Viewer
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
