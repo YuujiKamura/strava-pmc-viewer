@@ -1,5 +1,5 @@
 
-# Strava PMC Viewer - あの頃と今の成長
+# Strava PMC Viewer - 過去と今の成長
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![Tests](https://img.shields.io/badge/tests-65%20passing-brightgreen.svg)](./tests)
