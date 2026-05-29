@@ -1,5 +1,6 @@
 import * as auth from "./auth.js";
 import * as config from "./config.js";
+import * as configIO from "./config-io.js";
 import { fetchActivities, fetchActivityDetail, getRateBudget, refreshRateStatus } from "./strava.js";
 import {
   computePmc, decayForward, hoursUntilFresh, lastActivityEndMs,
@@ -38,6 +39,10 @@ const setupCurrentClient = $("setup-current-client");
 const setupCurrentWorker = $("setup-current-worker");
 const setupHostHint      = $("setup-host-hint");
 const setupScopeReadAll  = $("setup-scope-readall");
+const setupExportBtn     = $("setup-export");
+const setupImportBtn     = $("setup-import");
+const setupExportAsBtn   = $("setup-export-as");
+const setupFileStatus    = $("setup-file-status");
 if (setupHostHint) setupHostHint.textContent = location.host || location.hostname || "—";
 
 // hero / wizard refs
@@ -486,6 +491,69 @@ function wireSetupPanel() {
   for (const el of [setupClientInput, setupWorkerInput]) {
     if (el) el.addEventListener("input", refreshWizardSteps);
   }
+
+  // ── ファイル保存 / 復元 (config-io.js) ──
+  if (setupExportBtn) {
+    setupExportBtn.addEventListener("click", async () => {
+      const cfg = config.getConfig();
+      if (!cfg) {
+        setFileStatus("先に Client ID と Worker URL を「保存」してください", "err");
+        return;
+      }
+      const r = await configIO.exportConfig(cfg);
+      if (r.ok) setFileStatus(`ファイルに保存しました: ${r.name}`, "ok");
+      else      setFileStatus(`保存できませんでした: ${r.reason}`, "err");
+      refreshFileStatusName();
+    });
+  }
+  if (setupExportAsBtn) {
+    setupExportAsBtn.addEventListener("click", async () => {
+      const cfg = config.getConfig();
+      if (!cfg) {
+        setFileStatus("先に Client ID と Worker URL を「保存」してください", "err");
+        return;
+      }
+      const r = await configIO.exportConfig(cfg, { reselect: true });
+      if (r.ok) setFileStatus(`保存先を変更: ${r.name}`, "ok");
+      else      setFileStatus(`保存先変更できませんでした: ${r.reason}`, "err");
+      refreshFileStatusName();
+    });
+  }
+  if (setupImportBtn) {
+    setupImportBtn.addEventListener("click", async () => {
+      const r = await configIO.importConfig();
+      if (!r.ok) {
+        setFileStatus(`復元できませんでした: ${r.reason}`, "err");
+        return;
+      }
+      config.saveConfig(r.config);
+      renderSetupCurrent();
+      refreshWizardSteps();
+      setFileStatus(`復元しました: ${r.name}`, "ok");
+      // 接続前なら disconnected 表示を更新 (= 「Strava と接続」ボタン解放)
+      if (!token) onDisconnected();
+    });
+  }
+  refreshFileStatusName();
+}
+
+function setFileStatus(msg, kind /* "ok" | "err" | "" */) {
+  if (!setupFileStatus) return;
+  setupFileStatus.textContent = msg;
+  setupFileStatus.className = "setup-status" + (kind ? " " + kind : "");
+}
+
+async function refreshFileStatusName() {
+  if (!setupFileStatus) return;
+  try {
+    const name = await configIO.getSavedFileName();
+    if (name && !setupFileStatus.textContent) {
+      // ステータスメッセージが空 (= 直近の操作結果が無い) 時だけ「保存先」を表示。
+      // メッセージが入ってる時は上書きしない (= 成功 / 失敗が消えないように)。
+      setupFileStatus.textContent = `保存先: ${name}`;
+      setupFileStatus.className = "setup-status";
+    }
+  } catch { /* ignore */ }
 }
 
 connectBtn.addEventListener("click", () => {

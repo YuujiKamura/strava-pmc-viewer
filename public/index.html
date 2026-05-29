@@ -165,6 +165,26 @@ wrangler deploy --var ALLOWED_ORIGIN:"https://YOUR-USERNAME.github.io"</code></p
           </button>
           <span id="setup-status" class="setup-status"></span>
         </div>
+        <div class="setup-actions setup-actions-file">
+          <button id="setup-export" class="btn btn-ghost" type="button"
+                  title="現在の設定 (Client ID + Worker URL + scope) を 1 個のファイルに書き出します。初回は保存先を選びます、2 回目以降は同じファイルに黙って上書き保存。">
+            💾 ファイルに保存
+          </button>
+          <button id="setup-import" class="btn btn-ghost" type="button"
+                  title="以前ファイルに保存した設定を読み込んで localStorage に書き戻します。一度ファイルを覚えさせれば次回からダイアログ不要、ボタン 1 つで復元します。">
+            📂 ファイルから復元
+          </button>
+          <button id="setup-export-as" class="btn btn-sm btn-ghost" type="button"
+                  title="保存先ファイルを別の場所に変更します">
+            別ファイルに…
+          </button>
+          <span id="setup-file-status" class="setup-status"></span>
+        </div>
+        <p class="setup-row-hint" id="setup-file-hint">
+          ブラウザの localStorage は通常残りますが、サイトデータ削除やポート変更で消えることがあります。
+          ローカルの JSON ファイルに保存しておくと、後から「📂 ファイルから復元」で 1 クリックで戻せます
+          (Chrome / Edge は同じファイルを記憶、Firefox / Safari は毎回ダイアログ)。
+        </p>
         <p class="data-status-line">
           <span class="data-status-badge">Data Status: Local Only</span>
           取得したアクティビティはあなたのブラウザ内 (<code>localStorage</code>) にのみ保存されます。外部サーバーへの送信は一切行いません。

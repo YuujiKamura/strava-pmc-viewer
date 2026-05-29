@@ -2,7 +2,7 @@
 # Strava PMC Viewer
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-[![Tests](https://img.shields.io/badge/tests-57%20passing-brightgreen.svg)](./tests)
+[![Tests](https://img.shields.io/badge/tests-65%20passing-brightgreen.svg)](./tests)
 [![Strava API](https://img.shields.io/badge/Strava-API%20v3-fc4c02.svg)](https://developers.strava.com/)
 
 Strava のライド記録を **年度ごとに Fitness / Freshness / Form (PMC)** チャートにする
@@ -48,7 +48,7 @@ wrangler deploy --var ALLOWED_ORIGIN:"https://YOUR-USERNAME.github.io"
 public/   SPA 本体 (Chart.js + Hammer.js)、GitHub Pages serve 対象
   js/{pmc,auth,config,cache,strava,util,app}.js
 worker/   Cloudflare Worker (OAuth code 交換 + token refresh + rate-status)
-tests/    node --test (57 件)
+tests/    node --test (65 件)
 .github/workflows/pages.yml   public/ を GitHub Pages に Actions 経由でデプロイ
 ```
 
@@ -75,10 +75,10 @@ Strava API Agreement **§5.1** (本人 OAuth + 本人 UI 表示) / **§2.10** (�
 ## tests
 
 ```bash
-node --test tests/pmc.test.js tests/pure.test.js tests/security.test.js tests/network.test.js
+node --test tests/pmc.test.js tests/pure.test.js tests/security.test.js tests/network.test.js tests/config-io.test.js
 ```
 
-PMC math (20) + pure 関数境界 (20) + CORS/OAuth/XSS/cache 分離 (15) + Strava 429 backoff (2)、計 57 件。
+PMC math (20) + pure 関数境界 (20) + CORS/OAuth/XSS/cache 分離 (15) + Strava 429 backoff (2) + 設定ファイル I/O (8)、計 65 件。
 
 ## ライセンス
 
