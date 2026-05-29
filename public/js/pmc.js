@@ -67,10 +67,13 @@ export function tssFor(a, ftp = DEFAULT_FTP) {
   return (seconds / 3600) * rate;
 }
 
-// activity 1 件の bin 日付。Strava の start_date_local は活動現地時刻 (= JST 朝のライドが
-// UTC 前日に漏れない)、 末尾 Z は API 仕様上付くが嘘なので slice(0,10) で local 日付を取る。
-// start_date_local が無い古い cache のために start_date を fallback、その場合は UTC 解釈。
-function activityDate(a) {
+// activity 1 件の bin 日付 (= calendar day key、SoT)。Strava の start_date_local は
+// 活動現地時刻 (= JST 朝のライドが UTC 前日に漏れない)、 末尾 Z は API 仕様上付くが
+// 嘘なので slice(0,10) で local 日付を取る。 start_date_local が無い古い cache の
+// ために start_date を fallback、その場合は UTC 解釈。
+// 日付 bin する全 caller (PMC 計算 / 履歴 list / day-click panel 等) は本関数を使う、
+// 別途 .slice(0,10) を書くな (= 2026-05-29 の 1 日ズレ事故再演防止)。
+export function activityDate(a) {
   const s = a.start_date_local || a.start_date || "";
   return s.slice(0, 10);
 }

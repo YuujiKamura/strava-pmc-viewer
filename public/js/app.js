@@ -3,7 +3,7 @@ import * as config from "./config.js";
 import * as configIO from "./config-io.js";
 import { fetchActivities, fetchActivityDetail, getRateBudget, refreshRateStatus } from "./strava.js";
 import {
-  computePmc, decayForward, hoursUntilFresh, lastActivityEndMs,
+  computePmc, decayForward, hoursUntilFresh, lastActivityEndMs, activityDate,
 } from "./pmc.js";
 import * as cache from "./cache.js";
 
@@ -681,7 +681,7 @@ async function loadYear(year, { force = false } = {}) {
   // 公式推奨は Webhook だが本ツールは静的 SPA で常時 endpoint を持てない構造、
   // polling では物理的に解消不可。ユーザーに「待て」を明示する診断にする。
   const latest = acts.reduce((max, a) => {
-    const d = (a.start_date_local || a.start_date || "").slice(0, 10);
+    const d = activityDate(a);
     return d > max ? d : max;
   }, "");
   const todayStr = new Date().toLocaleDateString("sv-SE");
@@ -778,12 +778,10 @@ function render(year, activities, yearActivities) {
   updateCards(points, refIdx);
 
   // activities by date for click-panel (当年だけ、warmup の過去年活動は除外)
-  // pmc.js の bin と同じく start_date_local 優先、UTC slice だと朝の JST ライドが
-  // PMC bin (local) と key が 1 日ズレてリストが食い違う。
   const byDate = new Map();
   for (const a of yearActs) {
     if (!a.start_date && !a.start_date_local) continue;
-    const d = (a.start_date_local || a.start_date || "").slice(0, 10);
+    const d = activityDate(a);
     if (!byDate.has(d)) byDate.set(d, []);
     byDate.get(d).push({
       id: a.id, name: a.name, sport: a.sport_type || a.type,
