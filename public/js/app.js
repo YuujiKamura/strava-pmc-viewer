@@ -778,10 +778,12 @@ function render(year, activities, yearActivities) {
   updateCards(points, refIdx);
 
   // activities by date for click-panel (当年だけ、warmup の過去年活動は除外)
+  // pmc.js の bin と同じく start_date_local 優先、UTC slice だと朝の JST ライドが
+  // PMC bin (local) と key が 1 日ズレてリストが食い違う。
   const byDate = new Map();
   for (const a of yearActs) {
-    if (!a.start_date) continue;
-    const d = a.start_date.slice(0, 10);
+    if (!a.start_date && !a.start_date_local) continue;
+    const d = (a.start_date_local || a.start_date || "").slice(0, 10);
     if (!byDate.has(d)) byDate.set(d, []);
     byDate.get(d).push({
       id: a.id, name: a.name, sport: a.sport_type || a.type,
