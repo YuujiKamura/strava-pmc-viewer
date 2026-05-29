@@ -137,6 +137,31 @@ test("hoursUntilFresh: 0 値は null", () => {
   assert.equal(hoursUntilFresh({ ctl: 50, atl: 0 }), null);
 });
 
+test("computePmc: 朝の JST ライドは UTC 前日でなく当日 (start_date_local 採用) に bin される", () => {
+  // 07:00 JST 2026-05-29 start は UTC で 22:00 2026-05-28、
+  // 旧実装 (start_date を UTC slice) は 5/28 bin、 修正後は start_date_local の "2026-05-29" bin。
+  // TZ 非依存のテスト ── host が UTC でも JST でも結果一致。
+  const acts = [{
+    sport_type: "Ride", moving_time: 3600,
+    start_date:       "2026-05-28T22:00:00Z",
+    start_date_local: "2026-05-29T07:00:00Z",  // 末尾 Z は Strava 仕様の嘘、実体は local 時刻
+  }];
+  const pts = computePmc(acts, { from: "2026-05-28", to: "2026-05-30" });
+  const may28 = pts.find(p => p.date === "2026-05-28");
+  const may29 = pts.find(p => p.date === "2026-05-29");
+  assert.equal(may28.tss, 0, "5/28 はライド無し");
+  assert.ok(may29.tss > 0, `5/29 にライドが bin される (got ${may29.tss})`);
+});
+
+test("computePmc: start_date_local 欠落時は start_date に fallback (旧 cache 互換)", () => {
+  const acts = [{
+    sport_type: "Ride", moving_time: 3600,
+    start_date: "2026-05-29T12:00:00Z",  // 旧 cache (start_date_local 無し)
+  }];
+  const pts = computePmc(acts, { from: "2026-05-29", to: "2026-05-29" });
+  assert.ok(pts[0].tss > 0, "start_date のみでも bin される");
+});
+
 test("lastActivityEndMs: 最終 activity の start_date + elapsed_time を返す", () => {
   const acts = [
     { start_date: "2026-05-13T10:00:00Z", elapsed_time: 3600 }, // ends 11:00

@@ -684,7 +684,7 @@ async function loadYear(year, { force = false } = {}) {
     const d = (a.start_date_local || a.start_date || "").slice(0, 10);
     return d > max ? d : max;
   }, "");
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = new Date().toLocaleDateString("sv-SE");
   const isCurrentYearFetch = (year === new Date().getFullYear());
   let note = "";
   if (force && isCurrentYearFetch && latest && latest < todayStr) {
@@ -764,7 +764,7 @@ function render(year, activities, yearActivities) {
   // サマリーの基準日:
   //   - 当年表示: 今日 (date <= now の最新 point)
   //   - 過去年: その年の 12-31
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = new Date().toLocaleDateString("sv-SE");
   let refIdx = points.length - 1;
   for (let i = points.length - 1; i >= 0; i--) {
     if (points[i].date <= todayStr) { refIdx = i; break; }

@@ -67,57 +67,78 @@ export function tssFor(a, ftp = DEFAULT_FTP) {
   return (seconds / 3600) * rate;
 }
 
-/** ISO date string (YYYY-MM-DD) from Date or ISO string */
-function isoDate(d) {
-  const date = (d instanceof Date) ? d : new Date(d);
-  return date.toISOString().slice(0, 10);
+// activity 1 件の bin 日付。Strava の start_date_local は活動現地時刻 (= JST 朝のライドが
+// UTC 前日に漏れない)、 末尾 Z は API 仕様上付くが嘘なので slice(0,10) で local 日付を取る。
+// start_date_local が無い古い cache のために start_date を fallback、その場合は UTC 解釈。
+function activityDate(a) {
+  const s = a.start_date_local || a.start_date || "";
+  return s.slice(0, 10);
+}
+
+// from / to は "YYYY-MM-DD" 文字列か Date オブジェクト、Date は host local TZ で日付化。
+function inputDate(d) {
+  if (typeof d === "string") return d.slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// calendar day +1 (TZ 非依存、純粋な YYYY-MM-DD 加算)
+function nextDay(s) {
+  const [y, m, d] = s.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + 1);
+  return dt.toISOString().slice(0, 10);
 }
 
 /**
  * 1 日づつ EMA を進めて Point の配列を返す。
  *
- * @param {Array<object>} activities Strava activity 配列 ({start_date, sport_type, moving_time, elapsed_time, suffer_score?, weighted_average_watts?})
+ * @param {Array<object>} activities Strava activity 配列 ({start_date, start_date_local, sport_type, moving_time, elapsed_time, suffer_score?, weighted_average_watts?})
  * @param {{from: Date|string, to: Date|string, ftp?: number}} opts 出力 range (両端 inclusive)
  * @returns {Array<{date, tss, ctl, atl, tsb}>}
  */
 export function computePmc(activities, { from, to, ftp = DEFAULT_FTP }) {
-  // daily TSS map
   const daily = new Map();
   let earliest = null;
   for (const a of activities) {
-    if (!a.start_date) continue;
-    const d = isoDate(a.start_date);
+    if (!a.start_date && !a.start_date_local) continue;
+    const d = activityDate(a);
     daily.set(d, (daily.get(d) || 0) + tssFor(a, ftp));
     if (earliest === null || d < earliest) earliest = d;
   }
 
-  const fromStr = isoDate(from);
-  const toStr   = isoDate(to);
+  const fromStr = inputDate(from);
+  const toStr   = inputDate(to);
 
   // warmup: 既存活動の最古から from の前日まで EMA を走らせて初期値を埋める
   let ctl = 0, atl = 0;
   if (earliest !== null && earliest < fromStr) {
-    for (let d = new Date(earliest); isoDate(d) < fromStr; d.setUTCDate(d.getUTCDate() + 1)) {
-      const t = daily.get(isoDate(d)) || 0;
+    let cursor = earliest;
+    while (cursor < fromStr) {
+      const t = daily.get(cursor) || 0;
       ctl += (t - ctl) / CTL_DAYS;
       atl += (t - atl) / ATL_DAYS;
+      cursor = nextDay(cursor);
     }
   }
 
   const points = [];
-  for (let d = new Date(fromStr); isoDate(d) <= toStr; d.setUTCDate(d.getUTCDate() + 1)) {
-    const date = isoDate(d);
+  let cursor = fromStr;
+  while (cursor <= toStr) {
     const tsb  = ctl - atl;       // 前日値ベース
-    const t    = daily.get(date) || 0;
+    const t    = daily.get(cursor) || 0;
     ctl += (t - ctl) / CTL_DAYS;
     atl += (t - atl) / ATL_DAYS;
     points.push({
-      date,
+      date: cursor,
       tss: round1(t),
       ctl: round1(ctl),
       atl: round1(atl),
       tsb: round1(tsb),
     });
+    cursor = nextDay(cursor);
   }
   return points;
 }
