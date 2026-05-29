@@ -9,6 +9,8 @@ Strava のライド記録を **年度ごとに Fitness / Freshness / Form (PMC)*
 セルフホスト型ビューア。共有サーバを持たず、各 visitor が**自分の Cloudflare Worker** を
 1 つ立てるだけで動く。走行データはブラウザの localStorage を出ない。
 
+GithubPages版ですぐ試せる：https://yuujikamura.github.io/strava-pmc-viewer/
+
 <img width="1172" height="1200" alt="image" src="https://github.com/user-attachments/assets/cb1fd370-7ab3-4973-afb5-45f635359f18" />
 
 ```
