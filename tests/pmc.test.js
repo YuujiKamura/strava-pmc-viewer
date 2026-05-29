@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   tssFor, computePmc, DEFAULT_FTP,
   decayForward, hoursUntilFresh, lastActivityEndMs,
+  activityDate, latestActivityDate, groupActivitiesByDate,
 } from "../public/js/pmc.js";
 
 test("tssFor uses suffer_score when present (and no power data)", () => {
@@ -175,4 +176,80 @@ test("lastActivityEndMs: 最終 activity の start_date + elapsed_time を返す
 test("lastActivityEndMs: 空配列 / start_date 欠落 → null", () => {
   assert.equal(lastActivityEndMs([]), null);
   assert.equal(lastActivityEndMs([{ elapsed_time: 3600 }]), null);
+});
+
+// ── activityDate / latestActivityDate / groupActivitiesByDate (SoT) ─────
+test("activityDate: start_date_local 優先 (= 朝の JST ライドは当日 bin)", () => {
+  const a = {
+    start_date:       "2026-05-28T22:00:00Z",
+    start_date_local: "2026-05-29T07:00:00Z",
+  };
+  assert.equal(activityDate(a), "2026-05-29");
+});
+
+test("activityDate: start_date_local 欠落時は start_date に fallback (旧 cache 互換)", () => {
+  const a = { start_date: "2026-05-29T12:00:00Z" };
+  assert.equal(activityDate(a), "2026-05-29");
+});
+
+test("activityDate: start_date_local が空文字列なら start_date に fallback", () => {
+  const a = { start_date_local: "", start_date: "2026-05-29T12:00:00Z" };
+  assert.equal(activityDate(a), "2026-05-29");
+});
+
+test("activityDate: 両方欠落なら empty string", () => {
+  assert.equal(activityDate({}), "");
+  assert.equal(activityDate({ moving_time: 3600 }), "");
+});
+
+test("latestActivityDate: 最も新しい bin 日付を返す (start_date_local 優先)", () => {
+  const acts = [
+    { start_date_local: "2026-05-20T10:00:00Z" },
+    { start_date_local: "2026-05-29T07:00:00Z", start_date: "2026-05-28T22:00:00Z" }, // 朝 JST → 5/29
+    { start_date_local: "2026-05-25T15:00:00Z" },
+  ];
+  assert.equal(latestActivityDate(acts), "2026-05-29");
+});
+
+test("latestActivityDate: 空配列なら empty string", () => {
+  assert.equal(latestActivityDate([]), "");
+});
+
+test("groupActivitiesByDate: 朝の JST ライドが当日 key に group される (= byDate と PMC bin の整合)", () => {
+  const morningRide = {
+    id: 1, name: "朝ライド", sport_type: "Ride",
+    distance: 30000, elapsed_time: 3600, moving_time: 3300,
+    start_date:       "2026-05-28T22:00:00Z",
+    start_date_local: "2026-05-29T07:00:00Z",
+  };
+  const map = groupActivitiesByDate([morningRide]);
+  assert.equal(map.has("2026-05-28"), false, "UTC slice の 5/28 には入らない");
+  assert.ok(map.has("2026-05-29"), "local 採用の 5/29 に bin");
+  const entry = map.get("2026-05-29")[0];
+  assert.equal(entry.id, 1);
+  assert.equal(entry.name, "朝ライド");
+  assert.equal(entry.sport, "Ride");
+  assert.equal(entry.km, 30);          // 30000 m → 30.0 km
+  assert.equal(entry.min, 60);         // 3600 s → 60 分
+  assert.equal(entry.movingMin, 55);   // 3300 s → 55 分
+});
+
+test("groupActivitiesByDate: 同日に複数 activity は配列で並ぶ", () => {
+  const acts = [
+    { id: 1, start_date_local: "2026-05-29T07:00:00Z", sport_type: "Ride", moving_time: 3000 },
+    { id: 2, start_date_local: "2026-05-29T18:00:00Z", sport_type: "Run", moving_time: 1800 },
+  ];
+  const map = groupActivitiesByDate(acts);
+  assert.equal(map.get("2026-05-29").length, 2);
+  assert.deepEqual(map.get("2026-05-29").map(e => e.id), [1, 2]);
+});
+
+test("groupActivitiesByDate: start_date / start_date_local 両方欠落の activity は除外", () => {
+  const acts = [
+    { id: 1, start_date_local: "2026-05-29T07:00:00Z", sport_type: "Ride" },
+    { id: 2, sport_type: "Ride" }, // 両方欠落 → skip
+  ];
+  const map = groupActivitiesByDate(acts);
+  assert.equal(map.size, 1);
+  assert.equal(map.get("2026-05-29").length, 1);
 });

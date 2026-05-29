@@ -78,6 +78,39 @@ export function activityDate(a) {
   return s.slice(0, 10);
 }
 
+/**
+ * activities の中で「日付的に最も新しい」 bin key を返す (空配列なら "")。
+ * fetchActivities の summary message で「最新ライドの日付」表示に使う。
+ */
+export function latestActivityDate(activities) {
+  let max = "";
+  for (const a of activities) {
+    const d = activityDate(a);
+    if (d > max) max = d;
+  }
+  return max;
+}
+
+/**
+ * activities を bin 日付で group して Map<dateStr, Array<{id,name,sport,km,min,movingMin}>>
+ * を返す。 day-click panel で「その日の活動一覧」表示に使う。
+ */
+export function groupActivitiesByDate(activities) {
+  const byDate = new Map();
+  for (const a of activities) {
+    if (!a.start_date && !a.start_date_local) continue;
+    const d = activityDate(a);
+    if (!byDate.has(d)) byDate.set(d, []);
+    byDate.get(d).push({
+      id: a.id, name: a.name, sport: a.sport_type || a.type,
+      km: a.distance ? Math.round(a.distance / 100) / 10 : null,
+      min: a.elapsed_time ? Math.round(a.elapsed_time / 60) : null,
+      movingMin: a.moving_time ? Math.round(a.moving_time / 60) : null,
+    });
+  }
+  return byDate;
+}
+
 // from / to は "YYYY-MM-DD" 文字列か Date オブジェクト、Date は host local TZ で日付化。
 function inputDate(d) {
   if (typeof d === "string") return d.slice(0, 10);

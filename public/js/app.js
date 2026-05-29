@@ -3,7 +3,8 @@ import * as config from "./config.js";
 import * as configIO from "./config-io.js";
 import { fetchActivities, fetchActivityDetail, getRateBudget, refreshRateStatus } from "./strava.js";
 import {
-  computePmc, decayForward, hoursUntilFresh, lastActivityEndMs, activityDate,
+  computePmc, decayForward, hoursUntilFresh, lastActivityEndMs,
+  activityDate, latestActivityDate, groupActivitiesByDate,
 } from "./pmc.js";
 import * as cache from "./cache.js";
 
@@ -680,10 +681,7 @@ async function loadYear(year, { force = false } = {}) {
   // propagate するまで数分〜数十分の lag がある、community で長年の既知問題)。
   // 公式推奨は Webhook だが本ツールは静的 SPA で常時 endpoint を持てない構造、
   // polling では物理的に解消不可。ユーザーに「待て」を明示する診断にする。
-  const latest = acts.reduce((max, a) => {
-    const d = activityDate(a);
-    return d > max ? d : max;
-  }, "");
+  const latest = latestActivityDate(acts);
   const todayStr = new Date().toLocaleDateString("sv-SE");
   const isCurrentYearFetch = (year === new Date().getFullYear());
   let note = "";
@@ -778,18 +776,7 @@ function render(year, activities, yearActivities) {
   updateCards(points, refIdx);
 
   // activities by date for click-panel (当年だけ、warmup の過去年活動は除外)
-  const byDate = new Map();
-  for (const a of yearActs) {
-    if (!a.start_date && !a.start_date_local) continue;
-    const d = activityDate(a);
-    if (!byDate.has(d)) byDate.set(d, []);
-    byDate.get(d).push({
-      id: a.id, name: a.name, sport: a.sport_type || a.type,
-      km: a.distance ? Math.round(a.distance / 100) / 10 : null,
-      min: a.elapsed_time ? Math.round(a.elapsed_time / 60) : null,
-      movingMin: a.moving_time ? Math.round(a.moving_time / 60) : null,
-    });
-  }
+  const byDate = groupActivitiesByDate(yearActs);
 
   currentByDate = byDate;
   drawChart(points, byDate);
