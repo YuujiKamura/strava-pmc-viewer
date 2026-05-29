@@ -146,13 +146,6 @@ wrangler deploy --var ALLOWED_ORIGIN:"https://YOUR-USERNAME.github.io"</code></p
           <input id="setup-worker-url" type="text" autocomplete="off"
                  placeholder="https://strava-pmc-relay.xxxx.workers.dev" spellcheck="false">
         </div>
-        <div class="setup-row setup-row-checkbox">
-          <label for="setup-scope-readall">
-            <input id="setup-scope-readall" type="checkbox" checked>
-            非公開アクティビティも含める <span class="setup-row-pill">推奨・既定 ON</span>
-          </label>
-          <span class="setup-row-hint">自分のトレーニング分析を正確にするため、private rides も含めて全件取るのが既定。チェックを外すと公開分のみに絞れます。</span>
-        </div>
         <p class="setup-data-status-note">
           取得データはブラウザの localStorage にのみ保存。外部送信や他ユーザーとのデータ共有は
           構造上ありません。Strava API 利用規約 (§5.1 / §2.10 / §2.14 / §2.15) の範囲で動作。
@@ -167,7 +160,7 @@ wrangler deploy --var ALLOWED_ORIGIN:"https://YOUR-USERNAME.github.io"</code></p
         </div>
         <div class="setup-actions setup-actions-file">
           <button id="setup-export" class="btn btn-ghost" type="button"
-                  title="現在の設定 (Client ID + Worker URL + scope) を 1 個のファイルに書き出します。初回は保存先を選びます、2 回目以降は同じファイルに黙って上書き保存。">
+                  title="現在の設定 (Client ID + Worker URL) を 1 個のファイルに書き出します。初回は保存先を選びます、2 回目以降は同じファイルに黙って上書き保存。">
             💾 ファイルに保存
           </button>
           <button id="setup-import" class="btn btn-ghost" type="button"

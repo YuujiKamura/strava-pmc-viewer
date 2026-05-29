@@ -38,7 +38,6 @@ const setupCurrent     = $("setup-current");
 const setupCurrentClient = $("setup-current-client");
 const setupCurrentWorker = $("setup-current-worker");
 const setupHostHint      = $("setup-host-hint");
-const setupScopeReadAll  = $("setup-scope-readall");
 const setupExportBtn     = $("setup-export");
 const setupImportBtn     = $("setup-import");
 const setupExportAsBtn   = $("setup-export-as");
@@ -234,12 +233,8 @@ import { escapeHtml, dedupActivities, formatElapsed } from "./util.js";
 })();
 
 function onConnected() {
-  // 「現在の取得 scope」を pill に併記。private が出ない時に user が
-  // 一目で「あ、いま public 限定で動いてる」を確認できる可視化。
-  const cfg = config.getConfig();
-  const scopeLabel = (cfg && cfg.scopeReadAll) ? "非公開含む" : "公開のみ";
   const athleteName = token.athlete ? ` (${token.athlete.firstname || ""} ${token.athlete.lastname || ""})` : "";
-  authStatus.textContent = `接続済${athleteName} · ${scopeLabel}`;
+  authStatus.textContent = `接続済${athleteName}`;
   authStatus.classList.add("connected");
   connectBtn.hidden = true;
   logoutBtn.hidden  = false;
@@ -403,7 +398,6 @@ function renderSetupCurrent() {
   setupCurrentWorker.textContent = workerLabel;
   if (setupClientInput)    setupClientInput.value = cfg.clientId;
   if (setupWorkerInput)    setupWorkerInput.value = cfg.workerUrl;
-  if (setupScopeReadAll)   setupScopeReadAll.checked = !!cfg.scopeReadAll;
 }
 
 function wireSetupPanel() {
@@ -428,7 +422,6 @@ function wireSetupPanel() {
     setupSaveBtn.addEventListener("click", () => {
       const clientId  = (setupClientInput?.value || "").trim();
       const workerUrl = (setupWorkerInput?.value || "").trim();
-      const scopeReadAll = !!(setupScopeReadAll && setupScopeReadAll.checked);
       if (!clientId || !workerUrl) {
         setupStatus.textContent = "両方の値を入力してください";
         setupStatus.className = "setup-status err";
@@ -439,27 +432,8 @@ function wireSetupPanel() {
         setupStatus.className = "setup-status err";
         return;
       }
-      // scope (read vs read_all) を切り替えた時、既存の access_token は古い scope の
-      // まま残り続ける ── user が「絞ったつもり」で read_all のまま動く privacy 違反を
-      // 防ぐため、scope が変化したら token / cache を破棄して再認証フローに戻す。
-      const prev = config.getConfig();
-      const scopeChanged = !!prev && prev.scopeReadAll !== scopeReadAll;
-      config.saveConfig({ clientId, workerUrl, scopeReadAll });
-      let extraMsg = "";
-      if (scopeChanged) {
-        try {
-          const athId = token?.athlete?.id;
-          auth.clearToken();
-          if (athId != null) cache.clearAllForAthlete(athId);
-        } catch { /* ignore */ }
-        token = null;
-        currentPoints = null;
-        currentYear = null;
-        activitiesCache = new Map();
-        onDisconnected();
-        extraMsg = " (scope が変わったので再接続が必要です)";
-      }
-      setupStatus.textContent = "保存しました" + extraMsg;
+      config.saveConfig({ clientId, workerUrl });
+      setupStatus.textContent = "保存しました";
       setupStatus.className = "setup-status ok";
       renderSetupCurrent();
       closeSetupPanel();
@@ -714,17 +688,10 @@ async function loadYear(year, { force = false } = {}) {
   const isCurrentYearFetch = (year === new Date().getFullYear());
   let note = "";
   if (force && isCurrentYearFetch && latest && latest < todayStr) {
-    // 「最新が今日より前」= 今日の activity が API に出てない、原因 2 種:
-    //   (a) Strava 側の処理ラグ (新規 activity が /athlete/activities に propagate
-    //       するまで数分〜数十分、公式仕様)
-    //   (b) 今日の activity が private (Only You / Followers Only)
-    //       現 scope=activity:read だと private は API レスポンス自体に含まれず
-    //       永遠に出ない。scope=activity:read_all に切替えれば取れる。
-    const cfg = config.getConfig();
-    const isReadAll = !!(cfg && cfg.scopeReadAll);
-    note = isReadAll
-      ? ` ── 今日 (${todayStr}) の分は未反映、Strava 側の処理待ちの可能性 (数分〜数十分)`
-      : ` ── 今日 (${todayStr}) の分が無い。考えられる原因: ①Strava 処理待ち (数分〜数十分)、②今日の activity が private (現 scope=public 専用、setup で「private も含める」をオンにすると取得可)`;
+    // 「最新が今日より前」= 今日の activity が API に出てない。scope=activity:read_all
+    // 固定で private も含むので、残る原因は Strava 側の処理ラグ (新規 activity が
+    // /athlete/activities に propagate するまで数分〜数十分、公式仕様)。
+    note = ` ── 今日 (${todayStr}) の分は未反映、Strava 側の処理待ちの可能性 (数分〜数十分)`;
   }
   fetchStatus.textContent = `${acts.length} 件取得 (最新 ${latest || "—"}, ${year}年範囲)${note}`;
   activitiesCache.set(year, acts);

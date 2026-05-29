@@ -1,4 +1,4 @@
-// 設定 (Client ID + Worker URL + scope) をローカルファイルに書き出し / 読み込む I/O。
+// 設定 (Client ID + Worker URL) をローカルファイルに書き出し / 読み込む I/O。
 // File System Access API (Chrome/Edge) で初回に user に保存先を選んでもらい、
 // File handle を IndexedDB に保存しておくと、2 回目以降は黙って同じファイルに
 // 上書き保存 / 復元できる ── 「数日後 localStorage が消えてても、ボタン 1 つで戻せる」。
@@ -74,7 +74,6 @@ export function buildPayload(cfg, now = new Date()) {
     config: {
       clientId: String(cfg?.clientId || ""),
       workerUrl: String(cfg?.workerUrl || ""),
-      scopeReadAll: cfg?.scopeReadAll !== false,
     },
     savedAt: now.toISOString(),
   }, null, 2);
@@ -96,11 +95,7 @@ export function parsePayload(text) {
   if (!clientId || !workerUrl) return { ok: false, reason: "clientId / workerUrl が不完全です" };
   return {
     ok: true,
-    config: {
-      clientId,
-      workerUrl,
-      scopeReadAll: cfg.scopeReadAll !== false,
-    },
+    config: { clientId, workerUrl },
   };
 }
 

@@ -6,7 +6,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { corsHeaders, isOriginAllowed } from "../worker/index.js";
-import { scopeFor } from "../public/js/auth.js";
+import { STRAVA_SCOPE } from "../public/js/auth.js";
 import { escapeHtml } from "../public/js/util.js";
 
 // ── corsHeaders ────────────────────────────────────────────────
@@ -56,18 +56,9 @@ test("isOriginAllowed: empty origin → false (even with allowlist)", () => {
   assert.equal(isOriginAllowed("", "https://a.example"), false);
 });
 
-// ── scopeFor (OAuth scope min privilege) ──────────────────────
-test("scopeFor: default (no scopeReadAll) → activity:read", () => {
-  assert.equal(scopeFor({ clientId: "1", workerUrl: "x" }), "activity:read");
-});
-
-test("scopeFor: scopeReadAll=true → activity:read_all", () => {
-  assert.equal(scopeFor({ scopeReadAll: true }), "activity:read_all");
-});
-
-test("scopeFor: null/undefined cfg → activity:read (fail-safe)", () => {
-  assert.equal(scopeFor(null), "activity:read");
-  assert.equal(scopeFor(undefined), "activity:read");
+// ── STRAVA_SCOPE (固定値) ──────────────────────────────────────
+test("STRAVA_SCOPE は常に activity:read_all (private 含む全件取得)", () => {
+  assert.equal(STRAVA_SCOPE, "activity:read_all");
 });
 
 // ── escapeHtml (XSS) ──────────────────────────────────────────

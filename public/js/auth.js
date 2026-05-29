@@ -13,14 +13,10 @@ const STORAGE_KEY = "strava_pmc_token_v1";
 // sessionStorage を選んだのは「same tab 内 1 回限り、tab を閉じれば消えて再利用不可」のため。
 const STATE_KEY = "strava_pmc_oauth_state_v1";
 
-// scope は最小権限を default に。public activity だけで PMC は計算できる。
-// private 活動も対象にしたい visitor は config に `scopeReadAll: true` を保存
-// (UI のチェックボックスから) すると `activity:read_all` に格上げされる。
-const SCOPE_PUBLIC = "activity:read";
-const SCOPE_ALL    = "activity:read_all";
-export function scopeFor(cfg) {
-  return cfg && cfg.scopeReadAll ? SCOPE_ALL : SCOPE_PUBLIC;
-}
+// PMC を正確に計算するには private ride も含めて全件取る必要があるため、
+// scope は read_all 固定。本ツールは「自分の Strava データを自分で見る」用途
+// 専用で、公開のみ scope に絞る現実的な利得が無い (= UI 上の選択肢を廃止)。
+export const STRAVA_SCOPE = "activity:read_all";
 
 /** 32-hex-char random state。crypto.getRandomValues を使う。 */
 function generateState() {
@@ -66,7 +62,7 @@ export function authorizeUrl() {
     redirect_uri: redirectUri(),
     response_type: "code",
     approval_prompt: "auto",
-    scope: scopeFor(cfg),
+    scope: STRAVA_SCOPE,
     state,
   });
   return `https://www.strava.com/oauth/authorize?${p}`;

@@ -2,7 +2,7 @@
 # Strava PMC Viewer - 過去と今の成長
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-[![Tests](https://img.shields.io/badge/tests-65%20passing-brightgreen.svg)](./tests)
+[![Tests](https://img.shields.io/badge/tests-63%20passing-brightgreen.svg)](./tests)
 [![Strava API](https://img.shields.io/badge/Strava-API%20v3-fc4c02.svg)](https://developers.strava.com/)
 
 Strava のライド記録を **年度ごとに Fitness / Freshness / Form (PMC)** チャートにする
@@ -48,7 +48,7 @@ wrangler deploy --var ALLOWED_ORIGIN:"https://YOUR-USERNAME.github.io"
 public/   SPA 本体 (Chart.js + Hammer.js)、GitHub Pages serve 対象
   js/{pmc,auth,config,cache,strava,util,app}.js
 worker/   Cloudflare Worker (OAuth code 交換 + token refresh + rate-status)
-tests/    node --test (65 件)
+tests/    node --test (63 件)
 .github/workflows/pages.yml   public/ を GitHub Pages に Actions 経由でデプロイ
 ```
 
@@ -61,7 +61,7 @@ tests/    node --test (65 件)
 | OAuth state CSRF | RFC 6749 §10.12 準拠 (`crypto.getRandomValues(16)` → sessionStorage で照合) |
 | XSS escape | activity 表示時 `escapeHtml` 経由 (5 entity + `String()` coerce) |
 | 429 backoff | Strava `Retry-After` 尊重、本ツール側 self-count で上限管理 (900s clamp) |
-| 最小権限 scope | `activity:read` / `activity:read_all` を opt-in 切替、scope 変更時 token + cache clear |
+| OAuth scope 固定 | `activity:read_all` のみ。本人 PMC 分析用途で公開限定の利得が無く、UI 選択肢を廃止 |
 | CDN 改ざん検知 | jsdelivr の Chart.js / Hammer / zoom plugin に SRI sha384 hash + `crossorigin` |
 | Rate budget 可視化 | Worker `/rate-status` 経由で Strava の `X-RateLimit-*` を取得して UI 表示 |
 
@@ -78,7 +78,7 @@ Strava API Agreement **§5.1** (本人 OAuth + 本人 UI 表示) / **§2.10** (�
 node --test tests/pmc.test.js tests/pure.test.js tests/security.test.js tests/network.test.js tests/config-io.test.js
 ```
 
-PMC math (20) + pure 関数境界 (20) + CORS/OAuth/XSS/cache 分離 (15) + Strava 429 backoff (2) + 設定ファイル I/O (8)、計 65 件。
+PMC math (20) + pure 関数境界 (20) + CORS/OAuth/XSS/cache 分離 (13) + Strava 429 backoff (2) + 設定ファイル I/O (8)、計 63 件。
 
 ## ライセンス
 
@@ -86,9 +86,11 @@ MIT — 本 repo の [LICENSE](./LICENSE) 参照。fork 自由、Strava ToS と 
 
 ## Changelog
 
-- **2026-05-13**: scope 既定値を `activity:read_all` (private 含む全件) に変更。
-  旧版で setup 済の visitor は setup-panel で「保存」を一度押せば自動的に再 OAuth、
-  public のみで使いたい場合は checkbox を外す。
+- **2026-05-29**: scope を `activity:read_all` 固定に変更、setup-panel の checkbox を撤去。
+  本人 PMC 分析用途では public のみに絞る現実的な利得が無く、UI 選択肢を残すと
+  「直近の private ride が出ない」の混乱源になっていた。旧版で setup 済の visitor は
+  setup-panel の「保存」を一度押せば自動的に再 OAuth されて新 scope に揃う。
+- **2026-05-13**: scope 既定値を `activity:read_all` (private 含む全件) に変更 (← 当時はまだ checkbox あり)。
 
 ## commit 規約
 
