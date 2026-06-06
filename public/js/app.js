@@ -852,10 +852,26 @@ function dailyNpFromActivities(activities) {
   return out;
 }
 
+function movingAvgOverDates(valueByDate, sortedDates, windowDays) {
+  // 各日付に対し、過去 windowDays 日に値があった日だけで単純平均。
+  // 値が無い日は窓に含めない (= ride のない日で平均が薄まらない)。
+  const out = new Map();
+  for (let i = 0; i < sortedDates.length; i++) {
+    let sum = 0, n = 0;
+    for (let j = Math.max(0, i - windowDays + 1); j <= i; j++) {
+      const v = valueByDate.get(sortedDates[j]);
+      if (v != null) { sum += v; n++; }
+    }
+    if (n > 0) out.set(sortedDates[i], sum / n);
+  }
+  return out;
+}
+
 function drawChart(points, byDate, dailyNp) {
   if (chart) chart.destroy();
   const labels = points.map(p => p.date);
   dailyNp = dailyNp || new Map();
+  const npMA28 = movingAvgOverDates(dailyNp, labels, 28);
   chart = new Chart(canvas.getContext("2d"), {
     data: {
       labels,
@@ -875,6 +891,11 @@ function drawChart(points, byDate, dailyNp) {
           borderWidth:1, pointRadius:2.5, pointHoverRadius:4,
           showLine:true, spanGaps:true, tension:0.2,
           yAxisID:"yWatt", order:5 },
+        { type:"line", label:"NP 28日平均",
+          data: points.map(p => npMA28.get(p.date) ?? null),
+          borderColor:"#1d5e0e", borderWidth:2.5, pointRadius:0,
+          tension:0.3, spanGaps:true,
+          yAxisID:"yWatt", order:6 },
       ],
     },
     options: {
