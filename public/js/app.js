@@ -838,9 +838,13 @@ function dailyNpFromActivities(activities, mode) {
   for (const a of activities) {
     const sport = a.sport_type || a.type || "";
     if (!sport.endsWith("Ride")) continue;
-    const np = a.weighted_average_watts;
     const t = a.moving_time || 0;
-    if (np == null || t <= 0) continue;
+    if (t <= 0) continue;
+    // NP の優先順: weighted_average_watts > average_watts > kilojoules/duration からの平均 W
+    let np = a.weighted_average_watts;
+    if (np == null) np = a.average_watts;
+    if (np == null && a.kilojoules != null) np = (a.kilojoules * 1000) / t;
+    if (np == null) continue;
     if (mode === "real" && a.device_watts !== true) continue;
     if (mode === "est"  && a.device_watts === true) continue;  // device_watts === undefined (古い cache) も推定扱い
     const ds = a.start_date_local || a.start_date;
@@ -1029,6 +1033,8 @@ async function runEnrich(year, acts, { background = false } = {}) {
         Object.assign(a, {
           suffer_score: d.suffer_score,
           weighted_average_watts: d.weighted_average_watts,
+          average_watts: d.average_watts,
+          kilojoules: d.kilojoules,
           device_watts: d.device_watts,
           average_heartrate: d.average_heartrate,
           moving_time: d.moving_time,
