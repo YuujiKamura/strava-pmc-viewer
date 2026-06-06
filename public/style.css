@@ -461,7 +461,7 @@ body {
   padding: 0.5rem;
 }
 .chart-toolbar {
-  position: absolute; top: 0.5rem; right: 0.75rem; z-index: 10;
+  position: absolute; bottom: 0.5rem; right: 0.75rem; z-index: 10;
   display: flex; align-items: center; gap: 0.5rem; pointer-events: none;
 }
 .chart-toolbar > * { pointer-events: auto; }
