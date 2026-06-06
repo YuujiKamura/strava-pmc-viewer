@@ -781,7 +781,8 @@ function render(year, activities, yearActivities) {
   const byDate = groupActivitiesByDate(yearActs);
 
   currentByDate = byDate;
-  drawChart(points, byDate);
+  const dailyNp = dailyNpFromActivities(yearActs);
+  drawChart(points, byDate, dailyNp);
   // 初期選択日も「現在時刻」(refIdx) ── 12/31 を中心に出す bug 修正
   renderDay(refIdx, points, byDate);
   renderMonthly(yearActs);
@@ -825,30 +826,36 @@ function renderMonthly(yearActs) {
 }
 
 // ── chart ──────────────────────────────────────────────────────────────
-function dailyNpFromByDate(byDate) {
-  // 各日の cycling activity から NP を時間加重平均して 1 点に集約。
-  // 1 日 1 ride なら NP そのまま、複数 ride なら moving_time で加重。
+function dailyNpFromActivities(activities) {
+  // 生 activity 配列から、 cycling のみ抽出して 日付ごとに NP を
+  // moving_time で加重平均して 1 点に集約。 byDate (= 表示用 pluck 済み) には
+  // weighted_average_watts / moving_time が無いのでこちらから引く。
+  const agg = new Map();
+  for (const a of activities) {
+    const sport = a.sport_type || a.type || "";
+    if (!sport.endsWith("Ride")) continue;
+    const np = a.weighted_average_watts;
+    const t = a.moving_time || 0;
+    if (np == null || t <= 0) continue;
+    const ds = a.start_date_local || a.start_date;
+    if (!ds) continue;
+    const date = ds.slice(0, 10);
+    if (!agg.has(date)) agg.set(date, {sumW: 0, sumS: 0});
+    const x = agg.get(date);
+    x.sumW += np * t;
+    x.sumS += t;
+  }
   const out = new Map();
-  for (const [date, acts] of byDate) {
-    let sumW = 0, sumS = 0;
-    for (const a of acts) {
-      const sport = a.sport_type || a.type || "";
-      if (!sport.endsWith("Ride")) continue;
-      const np = a.weighted_average_watts;
-      const t = a.moving_time || 0;
-      if (np == null || t <= 0) continue;
-      sumW += np * t;
-      sumS += t;
-    }
+  for (const [date, {sumW, sumS}] of agg) {
     if (sumS > 0) out.set(date, sumW / sumS);
   }
   return out;
 }
 
-function drawChart(points, byDate) {
+function drawChart(points, byDate, dailyNp) {
   if (chart) chart.destroy();
   const labels = points.map(p => p.date);
-  const dailyNp = dailyNpFromByDate(byDate);
+  dailyNp = dailyNp || new Map();
   chart = new Chart(canvas.getContext("2d"), {
     data: {
       labels,
