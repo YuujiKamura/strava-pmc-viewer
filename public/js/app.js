@@ -783,10 +783,7 @@ function render(year, activities, yearActivities) {
   currentByDate = byDate;
   const dailyNpReal = dailyNpFromActivities(yearActs, "real");
   const dailyNpEst  = dailyNpFromActivities(yearActs, "est");
-  const dailyNpAll  = dailyNpFromActivities(yearActs);
-  const overlap = [...dailyNpReal.keys()].filter(d => dailyNpEst.has(d));
-  console.log(`[NP ${year}] real=${dailyNpReal.size}日 est=${dailyNpEst.size}日 all=${dailyNpAll.size}日 overlap=${overlap.length}日`, overlap);
-  drawChart(points, byDate, {real: dailyNpReal, est: dailyNpEst, all: dailyNpAll});
+  drawChart(points, byDate, {real: dailyNpReal, est: dailyNpEst});
   // 初期選択日も「現在時刻」(refIdx) ── 12/31 を中心に出す bug 修正
   renderDay(refIdx, points, byDate);
   renderMonthly(yearActs);
@@ -894,8 +891,6 @@ function drawChart(points, byDate, dailyNp) {
   dailyNp = dailyNp || {};
   const npReal = dailyNp.real || new Map();
   const npEst  = dailyNp.est  || new Map();
-  const npAll  = dailyNp.all  || new Map();
-  const npMA28 = movingAvgOverDates(npAll, labels, 28);
   chart = new Chart(canvas.getContext("2d"), {
     data: {
       labels,
@@ -922,11 +917,6 @@ function drawChart(points, byDate, dailyNp) {
           showLine:true, spanGaps:true, tension:0.2,
           borderDash:[3, 3],
           yAxisID:"yWatt", order:5 },
-        { type:"line", label:"NP 28日平均",
-          data: points.map(p => npMA28.get(p.date) ?? null),
-          borderColor:"#1d5e0e", borderWidth:2.5, pointRadius:0,
-          tension:0.3, spanGaps:true,
-          yAxisID:"yWatt", order:6 },
       ],
     },
     options: {
