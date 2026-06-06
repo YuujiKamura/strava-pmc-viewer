@@ -781,8 +781,10 @@ function render(year, activities, yearActivities) {
   const byDate = groupActivitiesByDate(yearActs);
 
   currentByDate = byDate;
-  const dailyNp = dailyNpFromActivities(yearActs);
-  drawChart(points, byDate, dailyNp);
+  const dailyNpReal = dailyNpFromActivities(yearActs, "real");
+  const dailyNpEst  = dailyNpFromActivities(yearActs, "est");
+  const dailyNpAll  = dailyNpFromActivities(yearActs);
+  drawChart(points, byDate, {real: dailyNpReal, est: dailyNpEst, all: dailyNpAll});
   // 初期選択日も「現在時刻」(refIdx) ── 12/31 を中心に出す bug 修正
   renderDay(refIdx, points, byDate);
   renderMonthly(yearActs);
@@ -826,10 +828,12 @@ function renderMonthly(yearActs) {
 }
 
 // ── chart ──────────────────────────────────────────────────────────────
-function dailyNpFromActivities(activities) {
+function dailyNpFromActivities(activities, mode) {
   // 生 activity 配列から、 cycling のみ抽出して 日付ごとに NP を
   // moving_time で加重平均して 1 点に集約。 byDate (= 表示用 pluck 済み) には
   // weighted_average_watts / moving_time が無いのでこちらから引く。
+  // mode: "real" (device_watts==true のみ)、 "est" (device_watts===false のみ)、
+  // それ以外 (or 未指定) は実測 / 推定 / 不明 を全部合算 = "all"。
   const agg = new Map();
   for (const a of activities) {
     const sport = a.sport_type || a.type || "";
@@ -837,6 +841,8 @@ function dailyNpFromActivities(activities) {
     const np = a.weighted_average_watts;
     const t = a.moving_time || 0;
     if (np == null || t <= 0) continue;
+    if (mode === "real" && a.device_watts !== true) continue;
+    if (mode === "est"  && a.device_watts !== false) continue;
     const ds = a.start_date_local || a.start_date;
     if (!ds) continue;
     const date = ds.slice(0, 10);
@@ -870,8 +876,11 @@ function movingAvgOverDates(valueByDate, sortedDates, windowDays) {
 function drawChart(points, byDate, dailyNp) {
   if (chart) chart.destroy();
   const labels = points.map(p => p.date);
-  dailyNp = dailyNp || new Map();
-  const npMA28 = movingAvgOverDates(dailyNp, labels, 28);
+  dailyNp = dailyNp || {};
+  const npReal = dailyNp.real || new Map();
+  const npEst  = dailyNp.est  || new Map();
+  const npAll  = dailyNp.all  || new Map();
+  const npMA28 = movingAvgOverDates(npAll, labels, 28);
   chart = new Chart(canvas.getContext("2d"), {
     data: {
       labels,
@@ -885,11 +894,18 @@ function drawChart(points, byDate, dailyNp) {
           borderColor:"#e26ca7", borderWidth:2, pointRadius:0, tension:0.25, yAxisID:"y", order:2 },
         { type:"line", label:"身体の余裕 (TSB)", data: points.map(p => p.tsb),
           borderColor:"#fc4c02", borderWidth:2, pointRadius:0, tension:0.25, yAxisID:"yTsb", order:3 },
-        { type:"line", label:"日次 NP (W)",
-          data: points.map(p => dailyNp.get(p.date) ?? null),
+        { type:"line", label:"日次 NP 実測 (W)",
+          data: points.map(p => npReal.get(p.date) ?? null),
           borderColor:"#3a9d23", backgroundColor:"rgba(58,157,35,0.7)",
           borderWidth:1, pointRadius:2.5, pointHoverRadius:4,
           showLine:true, spanGaps:true, tension:0.2,
+          yAxisID:"yWatt", order:5 },
+        { type:"line", label:"日次 NP 推定 (W)",
+          data: points.map(p => npEst.get(p.date) ?? null),
+          borderColor:"#e6a23c", backgroundColor:"rgba(230,162,60,0.7)",
+          borderWidth:1, pointRadius:2.5, pointHoverRadius:4,
+          showLine:true, spanGaps:true, tension:0.2,
+          borderDash:[3, 3],
           yAxisID:"yWatt", order:5 },
         { type:"line", label:"NP 28日平均",
           data: points.map(p => npMA28.get(p.date) ?? null),
@@ -1011,6 +1027,7 @@ async function runEnrich(year, acts, { background = false } = {}) {
         Object.assign(a, {
           suffer_score: d.suffer_score,
           weighted_average_watts: d.weighted_average_watts,
+          device_watts: d.device_watts,
           average_heartrate: d.average_heartrate,
           moving_time: d.moving_time,
         });
