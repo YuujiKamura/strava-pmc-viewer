@@ -794,6 +794,10 @@ function renderMonthly(yearActs) {
   }
   const months = Array.from({length: 12}, () => ({dist: 0, secs: 0, elev: 0}));
   for (const a of yearActs) {
+    // サイクリング系のみ (Ride / VirtualRide / EBikeRide / GravelRide / MountainBikeRide)。
+    // Run / Walk / Swim / Yoga 等は集計から外す。
+    const sport = a.sport_type || a.type || "";
+    if (!sport.endsWith("Ride")) continue;
     const ds = a.start_date_local || a.start_date;
     if (!ds) continue;
     const m = parseInt(ds.slice(5, 7), 10) - 1;
