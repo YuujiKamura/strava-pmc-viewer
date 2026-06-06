@@ -784,6 +784,8 @@ function render(year, activities, yearActivities) {
   const dailyNpReal = dailyNpFromActivities(yearActs, "real");
   const dailyNpEst  = dailyNpFromActivities(yearActs, "est");
   const dailyNpAll  = dailyNpFromActivities(yearActs);
+  const overlap = [...dailyNpReal.keys()].filter(d => dailyNpEst.has(d));
+  console.log(`[NP ${year}] real=${dailyNpReal.size}日 est=${dailyNpEst.size}日 all=${dailyNpAll.size}日 overlap=${overlap.length}日`, overlap);
   drawChart(points, byDate, {real: dailyNpReal, est: dailyNpEst, all: dailyNpAll});
   // 初期選択日も「現在時刻」(refIdx) ── 12/31 を中心に出す bug 修正
   renderDay(refIdx, points, byDate);
