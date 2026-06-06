@@ -832,8 +832,19 @@ function dailyNpFromActivities(activities, mode) {
   // 生 activity 配列から、 cycling のみ抽出して 日付ごとに NP を
   // moving_time で加重平均して 1 点に集約。 byDate (= 表示用 pluck 済み) には
   // weighted_average_watts / moving_time が無いのでこちらから引く。
-  // mode: "real" (device_watts==true のみ)、 "est" (device_watts===false のみ)、
+  // mode: "real" (device_watts==true のみ)、 "est" (実測の無い日の推定のみ)、
   // それ以外 (or 未指定) は実測 / 推定 / 不明 を全部合算 = "all"。
+  // est は per-day priority: その日に実測 ride が 1 本でもあれば est には出さない
+  // (= 同じ日に緑と橙が重ならない、 実測優先)。
+  const realDates = new Set();
+  for (const a of activities) {
+    if (a.device_watts !== true) continue;
+    const sport = a.sport_type || a.type || "";
+    if (!sport.endsWith("Ride")) continue;
+    const ds = a.start_date_local || a.start_date;
+    if (!ds) continue;
+    realDates.add(ds.slice(0, 10));
+  }
   const agg = new Map();
   for (const a of activities) {
     const sport = a.sport_type || a.type || "";
@@ -845,11 +856,12 @@ function dailyNpFromActivities(activities, mode) {
     if (np == null) np = a.average_watts;
     if (np == null && a.kilojoules != null) np = (a.kilojoules * 1000) / t;
     if (np == null) continue;
-    if (mode === "real" && a.device_watts !== true) continue;
-    if (mode === "est"  && a.device_watts === true) continue;  // device_watts === undefined (古い cache) も推定扱い
     const ds = a.start_date_local || a.start_date;
     if (!ds) continue;
     const date = ds.slice(0, 10);
+    const isReal = a.device_watts === true;
+    if (mode === "real" && !isReal) continue;
+    if (mode === "est"  && (isReal || realDates.has(date))) continue;
     if (!agg.has(date)) agg.set(date, {sumW: 0, sumS: 0});
     const x = agg.get(date);
     x.sumW += np * t;
