@@ -882,9 +882,13 @@ function drawChart(points, byDate, dailyNp) {
       interaction: { mode: "index", intersect: false },
       scales: {
         x:     { ticks: { maxTicksLimit: 12, autoSkip: true } },
-        y:     { position: "left",  title: { display: true, text: "CTL / ATL" } },
-        yTsb:  { position: "right", title: { display: true, text: "TSB" }, grid: { drawOnChartArea: false } },
-        yWatt: { position: "right", title: { display: true, text: "NP (W)" }, grid: { drawOnChartArea: false }, beginAtZero: false },
+        // 上下に余白を多めに取って、各 line を中央寄りの狭い帯に収める。
+        // CTL/ATL は実用 0-150、上を 300 まで取って圧縮。
+        y:     { position: "left",  title: { display: true, text: "CTL / ATL" }, min: 0, max: 300 },
+        // TSB は通常 -50 ~ +20、振れの大きい年でも ±100 以内、上下 300 で広く。
+        yTsb:  { position: "right", title: { display: true, text: "TSB" },     min: -300, max: 300, grid: { drawOnChartArea: false } },
+        // NP は 100-300W が実用、上を 600 まで取って中央付近の帯にする。
+        yWatt: { position: "right", title: { display: true, text: "NP (W)" }, min: 0, max: 600, grid: { drawOnChartArea: false }, beginAtZero: false },
         yTss:  { display: false, beginAtZero: true },
       },
       plugins: {
