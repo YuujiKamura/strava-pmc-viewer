@@ -825,9 +825,30 @@ function renderMonthly(yearActs) {
 }
 
 // ── chart ──────────────────────────────────────────────────────────────
+function dailyNpFromByDate(byDate) {
+  // 各日の cycling activity から NP を時間加重平均して 1 点に集約。
+  // 1 日 1 ride なら NP そのまま、複数 ride なら moving_time で加重。
+  const out = new Map();
+  for (const [date, acts] of byDate) {
+    let sumW = 0, sumS = 0;
+    for (const a of acts) {
+      const sport = a.sport_type || a.type || "";
+      if (!sport.endsWith("Ride")) continue;
+      const np = a.weighted_average_watts;
+      const t = a.moving_time || 0;
+      if (np == null || t <= 0) continue;
+      sumW += np * t;
+      sumS += t;
+    }
+    if (sumS > 0) out.set(date, sumW / sumS);
+  }
+  return out;
+}
+
 function drawChart(points, byDate) {
   if (chart) chart.destroy();
   const labels = points.map(p => p.date);
+  const dailyNp = dailyNpFromByDate(byDate);
   chart = new Chart(canvas.getContext("2d"), {
     data: {
       labels,
@@ -841,16 +862,23 @@ function drawChart(points, byDate) {
           borderColor:"#e26ca7", borderWidth:2, pointRadius:0, tension:0.25, yAxisID:"y", order:2 },
         { type:"line", label:"身体の余裕 (TSB)", data: points.map(p => p.tsb),
           borderColor:"#fc4c02", borderWidth:2, pointRadius:0, tension:0.25, yAxisID:"yTsb", order:3 },
+        { type:"line", label:"日次 NP (W)",
+          data: points.map(p => dailyNp.get(p.date) ?? null),
+          borderColor:"#3a9d23", backgroundColor:"rgba(58,157,35,0.7)",
+          borderWidth:1, pointRadius:2.5, pointHoverRadius:4,
+          showLine:true, spanGaps:true, tension:0.2,
+          yAxisID:"yWatt", order:5 },
       ],
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
       scales: {
-        x:    { ticks: { maxTicksLimit: 12, autoSkip: true } },
-        y:    { position: "left",  title: { display: true, text: "CTL / ATL" } },
-        yTsb: { position: "right", title: { display: true, text: "TSB" }, grid: { drawOnChartArea: false } },
-        yTss: { display: false, beginAtZero: true },
+        x:     { ticks: { maxTicksLimit: 12, autoSkip: true } },
+        y:     { position: "left",  title: { display: true, text: "CTL / ATL" } },
+        yTsb:  { position: "right", title: { display: true, text: "TSB" }, grid: { drawOnChartArea: false } },
+        yWatt: { position: "right", title: { display: true, text: "NP (W)" }, grid: { drawOnChartArea: false }, beginAtZero: false },
+        yTss:  { display: false, beginAtZero: true },
       },
       plugins: {
         legend: { position: "bottom" },
