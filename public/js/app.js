@@ -25,6 +25,8 @@ const resetZoom   = $("reset-zoom");
 const dayTitle    = $("day-title");
 const dayMetrics  = $("day-metrics");
 const dayWindow   = $("day-window");
+const monthlySummary = $("monthly-summary");
+const monthlyTable   = $("monthly-table");
 const canvas      = $("pmc-chart");
 
 // ── setup panel refs ─────────────────────────────────────────────────────
@@ -782,6 +784,40 @@ function render(year, activities, yearActivities) {
   drawChart(points, byDate);
   // 初期選択日も「現在時刻」(refIdx) ── 12/31 を中心に出す bug 修正
   renderDay(refIdx, points, byDate);
+  renderMonthly(yearActs);
+}
+
+function renderMonthly(yearActs) {
+  if (!yearActs || !yearActs.length) {
+    monthlySummary.hidden = true;
+    return;
+  }
+  const months = Array.from({length: 12}, () => ({dist: 0, secs: 0, elev: 0}));
+  for (const a of yearActs) {
+    const ds = a.start_date_local || a.start_date;
+    if (!ds) continue;
+    const m = parseInt(ds.slice(5, 7), 10) - 1;
+    if (m < 0 || m > 11) continue;
+    months[m].dist += a.distance || 0;
+    months[m].secs += a.moving_time || 0;
+    months[m].elev += a.total_elevation_gain || 0;
+  }
+  const sum = months.reduce((acc, m) => ({
+    dist: acc.dist + m.dist, secs: acc.secs + m.secs, elev: acc.elev + m.elev,
+  }), {dist: 0, secs: 0, elev: 0});
+  const fmtKm   = v => (v / 1000).toFixed(0);
+  const fmtHrs  = v => (v / 3600).toFixed(1);
+  const fmtElev = v => Math.round(v).toLocaleString();
+  const labels = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+  const head = `<thead><tr><th></th>${labels.map(l => `<th>${l}</th>`).join("")}<th class="total-col">合計</th></tr></thead>`;
+  const row = (name, key, fmtFn) =>
+    `<tr><th>${name}</th>${months.map(m => `<td>${m[key] ? fmtFn(m[key]) : "—"}</td>`).join("")}<td class="total-col">${fmtFn(sum[key])}</td></tr>`;
+  monthlyTable.innerHTML = head + "<tbody>" +
+    row("距離 (km)", "dist", fmtKm) +
+    row("時間 (h)",  "secs", fmtHrs) +
+    row("獲得標高 (m)", "elev", fmtElev) +
+    "</tbody>";
+  monthlySummary.hidden = false;
 }
 
 // ── chart ──────────────────────────────────────────────────────────────
