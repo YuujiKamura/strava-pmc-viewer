@@ -859,16 +859,18 @@ function dailyNpFromActivities(activities, mode) {
 }
 
 function movingAvgOverDates(valueByDate, sortedDates, windowDays) {
-  // 各日付に対し、過去 windowDays 日に値があった日だけで単純平均。
-  // 値が無い日は窓に含めない (= ride のない日で平均が薄まらない)。
+  // ride のあった日にだけ平均値を返す (= ride のない未来日まで線が伸びるのを止める)。
+  // 平均は過去 windowDays 日のうち実際に ride があった日の単純平均。
   const out = new Map();
   for (let i = 0; i < sortedDates.length; i++) {
+    const today = sortedDates[i];
+    if (!valueByDate.has(today)) continue;
     let sum = 0, n = 0;
     for (let j = Math.max(0, i - windowDays + 1); j <= i; j++) {
       const v = valueByDate.get(sortedDates[j]);
       if (v != null) { sum += v; n++; }
     }
-    if (n > 0) out.set(sortedDates[i], sum / n);
+    if (n > 0) out.set(today, sum / n);
   }
   return out;
 }
