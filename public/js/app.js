@@ -1004,7 +1004,8 @@ function renderDay(idx, points, byDate) {
           let t = null;
           if (a.movingMin && a.min && a.movingMin !== a.min) t = `移動 ${a.movingMin}分 / 経過 ${a.min}分`;
           else if (a.min) t = `${a.min}分`;
-          const metaParts = [a.sport, a.km ? `${a.km}km` : null, t].filter(Boolean);
+          const kmh = (a.km && a.movingMin > 0) ? (a.km * 60 / a.movingMin).toFixed(1) : null;
+          const metaParts = [a.sport, a.km ? `${a.km}km` : null, t, kmh ? `${kmh}km/h` : null].filter(Boolean);
           const meta = escapeHtml(metaParts.join(" · "));
           const href = a.id ? `https://www.strava.com/activities/${a.id}` : null;
           const title = escapeHtml(a.name || "(無題)");
