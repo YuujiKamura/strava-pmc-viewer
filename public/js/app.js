@@ -842,7 +842,7 @@ function dailyNpFromActivities(activities, mode) {
     const t = a.moving_time || 0;
     if (np == null || t <= 0) continue;
     if (mode === "real" && a.device_watts !== true) continue;
-    if (mode === "est"  && a.device_watts !== false) continue;
+    if (mode === "est"  && a.device_watts === true) continue;  // device_watts === undefined (古い cache) も推定扱い
     const ds = a.start_date_local || a.start_date;
     if (!ds) continue;
     const date = ds.slice(0, 10);
